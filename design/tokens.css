@@ -1,0 +1,119 @@
+/*
+ * Road to Athen – Designsystem-Tokens für shadcn/ui (Tailwind CSS v4)
+ *
+ * Verwendung: Nach `npx shadcn@latest init` in src/index.css die von shadcn
+ * erzeugten Blöcke `:root { … }` und `.dark { … }` durch die Blöcke unten ersetzen
+ * und den Block `@theme inline` am Ende um die markierten Zeilen ergänzen.
+ * Kartenfarben als Hex: src/lib/map-theme.ts (MapLibre kann kein oklch).
+ */
+
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/fraunces";
+
+:root {
+  --radius: 0.75rem;
+
+  /* Papier & Tinte */
+  --background: oklch(0.985 0.007 85);          /* #fcfaf5 */
+  --foreground: oklch(0.23 0.015 60);           /* #221b16 */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.23 0.015 60);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.23 0.015 60);
+
+  /* Terrakotta – Akzent und Route */
+  --primary: oklch(0.6 0.16 42);                /* #cc5824 */
+  --primary-foreground: oklch(0.99 0.005 85);
+
+  /* Sand */
+  --secondary: oklch(0.95 0.012 80);
+  --secondary-foreground: oklch(0.3 0.02 60);
+  --muted: oklch(0.955 0.01 80);
+  --muted-foreground: oklch(0.52 0.018 60);     /* #71675f */
+
+  /* Ägäis */
+  --accent: oklch(0.94 0.025 230);
+  --accent-foreground: oklch(0.38 0.09 240);
+
+  --destructive: oklch(0.58 0.22 27);
+  --border: oklch(0.9 0.012 80);
+  --input: oklch(0.9 0.012 80);
+  --ring: oklch(0.6 0.16 42);
+
+  /* Höhenprofil & Statistik: Terrakotta → Ägäis */
+  --chart-1: oklch(0.6 0.16 42);
+  --chart-2: oklch(0.72 0.12 60);
+  --chart-3: oklch(0.8 0.08 95);
+  --chart-4: oklch(0.68 0.07 200);
+  --chart-5: oklch(0.55 0.09 230);              /* #2e7b9c */
+
+  --sidebar: oklch(0.975 0.008 85);
+  --sidebar-foreground: oklch(0.23 0.015 60);
+  --sidebar-primary: oklch(0.6 0.16 42);
+  --sidebar-primary-foreground: oklch(0.99 0.005 85);
+  --sidebar-accent: oklch(0.94 0.025 230);
+  --sidebar-accent-foreground: oklch(0.38 0.09 240);
+  --sidebar-border: oklch(0.9 0.012 80);
+  --sidebar-ring: oklch(0.6 0.16 42);
+
+  /* Projekt-Tokens: Karte */
+  --route: oklch(0.6 0.16 42);                  /* #cc5824 */
+  --route-muted: oklch(0.6 0.16 42 / 0.35);
+  --route-casing: oklch(1 0 0);
+  --stage-end: oklch(0.42 0.1 240);             /* #00537e */
+  --finish: oklch(0.78 0.15 80);                /* #e9ab2b */
+  --map-panel: oklch(1 0 0 / 0.95);
+}
+
+.dark {
+  --background: oklch(0.18 0.01 60);
+  --foreground: oklch(0.96 0.008 85);
+  --card: oklch(0.22 0.012 60);
+  --card-foreground: oklch(0.96 0.008 85);
+  --popover: oklch(0.22 0.012 60);
+  --popover-foreground: oklch(0.96 0.008 85);
+  --primary: oklch(0.68 0.16 45);
+  --primary-foreground: oklch(0.18 0.01 60);
+  --secondary: oklch(0.28 0.012 60);
+  --secondary-foreground: oklch(0.96 0.008 85);
+  --muted: oklch(0.28 0.012 60);
+  --muted-foreground: oklch(0.72 0.015 70);
+  --accent: oklch(0.32 0.04 235);
+  --accent-foreground: oklch(0.92 0.03 230);
+  --destructive: oklch(0.7 0.19 22);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.68 0.16 45);
+  --chart-1: oklch(0.68 0.16 45);
+  --chart-2: oklch(0.76 0.12 60);
+  --chart-3: oklch(0.82 0.08 95);
+  --chart-4: oklch(0.72 0.07 200);
+  --chart-5: oklch(0.65 0.09 230);
+  --sidebar: oklch(0.2 0.01 60);
+  --sidebar-foreground: oklch(0.96 0.008 85);
+  --sidebar-primary: oklch(0.68 0.16 45);
+  --sidebar-primary-foreground: oklch(0.18 0.01 60);
+  --sidebar-accent: oklch(0.32 0.04 235);
+  --sidebar-accent-foreground: oklch(0.92 0.03 230);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.68 0.16 45);
+  --route: oklch(0.68 0.16 45);
+  --route-muted: oklch(0.68 0.16 45 / 0.35);
+  --route-casing: oklch(0.18 0.01 60);
+  --stage-end: oklch(0.75 0.09 230);
+  --finish: oklch(0.82 0.15 85);
+  --map-panel: oklch(0.22 0.012 60 / 0.95);
+}
+
+/* In den von shadcn erzeugten Block `@theme inline { … }` zusätzlich aufnehmen: */
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Fraunces Variable", ui-serif, Georgia, serif;
+
+  --color-route: var(--route);
+  --color-route-muted: var(--route-muted);
+  --color-route-casing: var(--route-casing);
+  --color-stage-end: var(--stage-end);
+  --color-finish: var(--finish);
+  --color-map-panel: var(--map-panel);
+}
