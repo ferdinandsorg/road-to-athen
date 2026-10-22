@@ -58,8 +58,19 @@ Siehe `docs/DESIGN_SYSTEM.md` und `docs/PLAN.md`.
 
 Täglich um **20:00** (Lokalzeit) committen und pushen — respektiert `.gitignore` (keine `.env`, kein `raw/`, kein `public/media`).
 
+**Einmalige Anmeldung** (nötig, damit Push ohne Passwort-Prompt läuft).
+`gh` liegt unter `~/.local/bin` (bereits installiert):
+
 ```bash
-# einmalig einrichten
+export PATH="$HOME/.local/bin:$PATH"
+gh auth login          # GitHub.com → HTTPS → Login with browser
+gh auth setup-git
+```
+
+Danach:
+
+```bash
+# einmalig einrichten (täglich 20:00)
 ./scripts/install-github-sync-agent.sh
 
 # sofort synchronisieren

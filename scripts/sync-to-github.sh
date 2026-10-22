@@ -50,11 +50,24 @@ else
 fi
 
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+export GIT_TERMINAL_PROMPT=0
 if git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
-  git push origin "HEAD"
+  if ! git push origin "HEAD" 2>>"$LOG_FILE"; then
+    log "ERROR: push failed — authenticate once, then re-run this script:"
+    log "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+    log "  gh auth login && gh auth setup-git"
+    log "  ./scripts/sync-to-github.sh"
+    exit 1
+  fi
   log "Pushed $BRANCH → origin"
 else
-  git push -u origin "HEAD"
+  if ! git push -u origin "HEAD" 2>>"$LOG_FILE"; then
+    log "ERROR: push failed — authenticate once, then re-run this script:"
+    log "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+    log "  gh auth login && gh auth setup-git"
+    log "  ./scripts/sync-to-github.sh"
+    exit 1
+  fi
   log "Pushed $BRANCH → origin (upstream set)"
 fi
 
