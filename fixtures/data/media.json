@@ -1,0 +1,110 @@
+[
+  {
+    "id": "fix-media-1",
+    "stageNr": 1,
+    "type": "photo",
+    "takenAt": "2026-10-11T08:30:00+03:00",
+    "lat": 40.5,
+    "lng": 22.95,
+    "width": 800,
+    "height": 800,
+    "thumb": "/media/thumb/fix-media-1.webp",
+    "medium": "/media/medium/fix-media-1.webp"
+  },
+  {
+    "id": "fix-media-2",
+    "stageNr": 1,
+    "type": "photo",
+    "takenAt": "2026-10-11T09:30:00+03:00",
+    "lat": 40.3,
+    "lng": 22.98,
+    "width": 800,
+    "height": 800,
+    "thumb": "/media/thumb/fix-media-2.webp",
+    "medium": "/media/medium/fix-media-2.webp"
+  },
+  {
+    "id": "fix-media-3",
+    "stageNr": 1,
+    "type": "photo",
+    "takenAt": "2026-10-11T010:30:00+03:00",
+    "lat": 40.1,
+    "lng": 23.1,
+    "width": 800,
+    "height": 800,
+    "thumb": "/media/thumb/fix-media-3.webp",
+    "medium": "/media/medium/fix-media-3.webp"
+  },
+  {
+    "id": "fix-media-4",
+    "stageNr": 2,
+    "type": "photo",
+    "takenAt": "2026-10-12T08:30:00+03:00",
+    "lat": 39.7,
+    "lng": 23.35,
+    "width": 800,
+    "height": 800,
+    "thumb": "/media/thumb/fix-media-4.webp",
+    "medium": "/media/medium/fix-media-4.webp"
+  },
+  {
+    "id": "fix-media-5",
+    "stageNr": 2,
+    "type": "photo",
+    "takenAt": "2026-10-12T09:30:00+03:00",
+    "lat": 39.5,
+    "lng": 23.5,
+    "width": 800,
+    "height": 800,
+    "thumb": "/media/thumb/fix-media-5.webp",
+    "medium": "/media/medium/fix-media-5.webp"
+  },
+  {
+    "id": "fix-media-6",
+    "stageNr": 2,
+    "type": "video",
+    "takenAt": "2026-10-12T010:30:00+03:00",
+    "lat": 39.3,
+    "lng": 23.65,
+    "width": 800,
+    "height": 800,
+    "thumb": "/media/thumb/fix-media-6.webp",
+    "medium": "/media/medium/fix-media-6.webp"
+  },
+  {
+    "id": "fix-media-7",
+    "stageNr": 3,
+    "type": "photo",
+    "takenAt": "2026-10-13T08:30:00+03:00",
+    "lat": null,
+    "lng": null,
+    "width": 800,
+    "height": 800,
+    "thumb": "/media/thumb/fix-media-7.webp",
+    "medium": "/media/medium/fix-media-7.webp"
+  },
+  {
+    "id": "fix-media-8",
+    "stageNr": 3,
+    "type": "photo",
+    "takenAt": "2026-10-13T09:30:00+03:00",
+    "lat": 38.4,
+    "lng": 23.72,
+    "width": 800,
+    "height": 800,
+    "thumb": "/media/thumb/fix-media-8.webp",
+    "medium": "/media/medium/fix-media-8.webp"
+  },
+  {
+    "id": "fix-media-9",
+    "stageNr": 3,
+    "type": "photo",
+    "takenAt": "2026-10-13T010:30:00+03:00",
+    "lat": 38,
+    "lng": 23.73,
+    "width": 800,
+    "height": 800,
+    "thumb": "/media/thumb/fix-media-9.webp",
+    "medium": "/media/medium/fix-media-9.webp"
+  }
+]

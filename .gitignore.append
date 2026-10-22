@@ -1,0 +1,4 @@
+# --- Road to Athen: an .gitignore anhängen ---
+raw/
+public/data/
+public/media/

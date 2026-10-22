@@ -1,0 +1,4 @@
+# Strava-API-Daten (Aufnahmezeit/Position) – nicht von Cursor indizieren oder lesen lassen
+raw/media/
+public/media/
+public/data/media.json

@@ -1,0 +1,31 @@
+---
+description: Datenpipeline und Umgang mit Strava-Daten (Datenschutz, keine Rohdaten lesen)
+globs: scripts/**,fixtures/**,src/types/**
+alwaysApply: false
+---
+
+# Daten
+
+Spezifikation: @docs/DATA_SPEC.md
+
+## Strava-Daten nicht lesen
+
+Aufnahmezeiten und Positionen der Fotos stammen aus der Strava-API. Laut Strava-API-Richtlinie
+dürfen diese Daten nicht in KI-Anwendungen verwendet werden – dazu zählt dieser Agent.
+
+- **Nicht** öffnen, lesen, durchsuchen oder ausgeben: `public/data/media.json`, `raw/media/**`,
+  `public/media/**` sowie EXIF-Ausgaben von Medien.
+- Die Pipeline schreibt der Nutzer mit dir, **ausführen** tut er sie selbst (`npm run build:data`).
+  Er meldet dir nur Zahlen („319 Medien, 5 ohne Position“).
+- Logs der Pipeline enthalten nur Zählungen und Dateinamen, nie Koordinaten oder Zeiten.
+- Für Entwicklung und Tests ausschließlich `fixtures/` mit erfundenen Werten verwenden.
+
+GPS-Spuren (`raw/activities/*.fit.gz`) und `raw/activities.csv` stammen aus dem eigenen
+Datenexport, nicht aus der API. Formate sind in DATA_SPEC.md beschrieben – du musst sie nicht öffnen.
+
+## Pipeline-Regeln
+
+- Idempotent, `--force` baut neu. Fortschritt pro Etappe ausgeben.
+- Fehlende Dateien überspringen und am Ende auflisten, nicht abbrechen.
+- Bilder/Videos ohne Metadaten ausgeben (sharp strippt EXIF, ffmpeg mit `-map_metadata -1`).
+- Datenschutz-Kürzung am Anfang der ersten Etappe gemäß `scripts/config.ts`.

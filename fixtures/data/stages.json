@@ -1,0 +1,89 @@
+[
+  {
+    "nr": 1,
+    "id": "fixture-1",
+    "name": "Fixture Etappe 1",
+    "day": 1,
+    "startUtc": "2026-10-11T06:00:00.000Z",
+    "timeZone": "Europe/Athens",
+    "distanceM": 92000,
+    "movingTimeS": 14600,
+    "elapsedTimeS": 16700,
+    "elevationGainM": 1100,
+    "avgSpeedMs": 5.2,
+    "avgTempC": 19,
+    "bbox": [
+      22.94,
+      39.9,
+      23.2,
+      40.64
+    ],
+    "start": [
+      22.94,
+      40.64
+    ],
+    "end": [
+      23.2,
+      39.9
+    ],
+    "mediaCount": 3
+  },
+  {
+    "nr": 2,
+    "id": "fixture-2",
+    "name": "Fixture Etappe 2",
+    "day": 2,
+    "startUtc": "2026-10-12T06:00:00.000Z",
+    "timeZone": "Europe/Athens",
+    "distanceM": 104000,
+    "movingTimeS": 15200,
+    "elapsedTimeS": 17400,
+    "elevationGainM": 1300,
+    "avgSpeedMs": 5.2,
+    "avgTempC": 20,
+    "bbox": [
+      23.2,
+      39.1,
+      23.72,
+      39.9
+    ],
+    "start": [
+      23.2,
+      39.9
+    ],
+    "end": [
+      23.72,
+      39.1
+    ],
+    "mediaCount": 3
+  },
+  {
+    "nr": 3,
+    "id": "fixture-3",
+    "name": "Fixture Etappe 3",
+    "day": 3,
+    "startUtc": "2026-10-13T06:00:00.000Z",
+    "timeZone": "Europe/Athens",
+    "distanceM": 116000,
+    "movingTimeS": 15800,
+    "elapsedTimeS": 18100,
+    "elevationGainM": 1500,
+    "avgSpeedMs": 5.2,
+    "avgTempC": 21,
+    "bbox": [
+      23.72,
+      37.9838,
+      23.75,
+      39.1
+    ],
+    "start": [
+      23.72,
+      39.1
+    ],
+    "end": [
+      23.7275,
+      37.9838
+    ],
+    "mediaCount": 3
+  }
+]

@@ -60,11 +60,14 @@ und am Ende eine Zusammenfassung ausgeben: nur Zahlen und Dateinamen, **keine** 
 
 1. CSV lesen → Etappen nach Startzeit sortieren → `nr` = 1…32.
 2. Pro Etappe FIT lesen →
-   - Detailspur: Douglas-Peucker-Vereinfachung (`@turf/simplify`, Toleranz ca. 0,00002°),
+   - Transport-Abschnitte (Fähre / Auto / Tunnel) **vor** der Vereinfachung am Roh-Track
+     erkennen: GPS-Sprung ≥ 2000 m (≥ 60 s) oder ≥ 800 m bei ≥ 10 min und < 25 km/h.
+     Diese Kanten bleiben als eigene `LineString`-Features mit `transport: true`.
+   - Detailspur: gerittene Teile mit Douglas-Peucker (`@turf/simplify`, Toleranz ca. 0,00002°),
      Koordinaten auf 5 Nachkommastellen runden, Höhe auf ganze Meter.
    - Höhenprofil: ca. 300 gleichmäßig über die Distanz verteilte Punkte `[distanzKm, höheM]`.
    - Zeitzone: aus dem Startpunkt mit `@photostructure/tz-lookup` bestimmen (IANA-Name).
-3. Gesamtlinie für den Überblick: alle Etappen stark vereinfacht (Toleranz ca. 0,0005°) in einer Datei.
+3. Gesamtlinie für den Überblick: dieselben Teile, gerittene stark vereinfacht (Toleranz ca. 0,0005°).
 4. Medien pro Etappe:
    - Fotos mit `sharp`: `thumb` 160 px (quadratisch, `cover`), `medium` 1600 px lange Kante, beides WebP.
      `sharp` entfernt dabei die EXIF-Daten (gewollt).
@@ -112,7 +115,9 @@ export type Stage = {
 
 export type StageDetail = {
   nr: number;
-  line: GeoJSON.Feature<GeoJSON.LineString>; // Koordinaten [lng, lat, ele]
+  // FeatureCollection aus LineStrings [lng, lat, ele];
+  // features with properties.transport === true → gestrichelt (nicht geradelt)
+  line: GeoJSON.FeatureCollection;
   profile: [number, number][];               // [distanzKm, höheM]
 };
 
@@ -133,7 +138,8 @@ export type MediaItem = {
 ```
 
 `overview.geojson` enthält eine `FeatureCollection` mit
-- je Etappe ein `LineString` mit `properties: { nr }`
+- je Etappe ein oder mehrere `LineString`s mit `properties: { nr, transport?: true }`
+  (Transport-Teile sind eigene Features, damit sie die starke Overview-Vereinfachung überleben)
 - je Etappe ein `Point` am Ende mit `properties: { nr, kind: "stage-end" | "finish" }`
 - ein `Point` am Start der ersten Etappe mit `properties: { nr: 1, kind: "start" }`
 

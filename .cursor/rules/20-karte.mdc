@@ -1,0 +1,45 @@
+---
+description: Kartenaufbau mit MapLibre, OpenFreeMap-Grundkarte und Mapterhorn-Relief
+globs: src/features/map/**,src/lib/map-theme.ts
+alwaysApply: false
+---
+
+# Karte
+
+## Quellen (kostenlos, kein API-Key)
+
+- Grundkarte (Priorität): Mapbox Studio „Outdoors“ aus `public/styles/outdoors-mapbox.json`
+  wenn `VITE_MAPBOX_ACCESS_TOKEN` gesetzt (`src/lib/mapbox-outdoors-style.ts` rewrites
+  `mapbox://` → API-URLs). Sonst Carto Voyager / OpenFreeMap Liberty.
+- Relief 3D: Mapterhorn als `raster-dem` (auch mit Outdoors-Style für `setTerrain`).
+  ```ts
+  map.addSource("dem", { type: "raster-dem", url: "https://tiles.mapterhorn.com/tilejson.json",
+                         encoding: "terrarium", tileSize: 512 });
+  ```
+  Extra-Hillshade (`rta-hillshade`) nur ohne Outdoors-Style — Outdoors bringt eigenes Relief mit.
+- Wichtig: `encoding: "terrarium"` – ohne das sind die Höhenwerte stillschweigend falsch.
+- Attribution Mapbox/OSM bzw. Carto und Mapterhorn sichtbar lassen.
+- Etappenansicht: `map.setTerrain({ source: "dem", exaggeration })` + Pitch/Bearing aus
+  `mapTheme.stageCamera`. Überblick bleibt flach (kein Terrain, pitch 0).
+
+## Layer-Reihenfolge (oben nach unten)
+
+1. Foto-Marker (HTML-Marker) bzw. Cluster
+2. Start-/Ziel-/Etappenend-Punkte (`circle`-Layer + Symbol fürs Ziel)
+3. aktive Etappe: Linie `route` über Kontur `route-casing`
+4. übrige Etappen: `route-muted`
+5. Beschriftungen der Grundkarte
+6. Hillshade
+7. Grundkarte
+
+## Verhalten
+
+- Startansicht: `fitBounds` auf die Gesamtstrecke mit Padding (Panel-Breite berücksichtigen).
+- Etappenwechsel: `fitBounds(stage.bbox, { padding, duration: 1200 })`. Aktive Etappe per
+  `filter`/`feature-state` hervorheben – Quellen nicht neu erzeugen.
+- Fotos im Überblick: GeoJSON-Quelle mit `cluster: true`; in der Etappenansicht einzelne
+  Thumbnail-Marker nur für diese Etappe (max. ca. 50 gleichzeitig im DOM).
+- Medien mit `lat === null` nie auf die Karte setzen.
+- Hover im Höhenprofil → Punkt auf der Linie (eigene `circle`-Quelle aktualisieren, kein Re-Render der Karte).
+- MapLibre-Instanz nur einmal erzeugen, Zugriff über `useMap()`; keine Karten-Logik in Seitenkomponenten.
+- `maplibre-gl/dist/maplibre-gl.css` einbinden.

@@ -1,0 +1,20 @@
+---
+description: Designsystem mit shadcn/ui und Tailwind-Tokens – gilt für alle UI-Dateien
+globs: src/**/*.tsx,src/**/*.css
+alwaysApply: false
+---
+
+# Designsystem
+
+Vollständige Beschreibung: @docs/DESIGN_SYSTEM.md. Tokens: `src/index.css`.
+
+- Nur Tokens verwenden: `bg-background`, `text-foreground`, `bg-card`, `text-muted-foreground`,
+  `bg-primary`, `border-border`, `text-route`, `bg-stage-end`, `bg-map-panel` usw.
+  **Verboten:** feste Farben (`#…`, `rgb(…)`, `bg-[…]`) und Tailwind-Paletten wie `text-orange-600`.
+- Ausnahme: MapLibre-Layer bekommen Farben aus `src/lib/map-theme.ts`.
+- Zuerst eine vorhandene shadcn-Komponente suchen (shadcn-MCP oder `npx shadcn@latest add …`),
+  erst dann selbst bauen. Dateien in `src/components/ui/` nicht umschreiben, sondern kapseln.
+- Überschriften `font-heading`, Kennzahlen `tabular-nums`.
+- Panels über der Karte: `rounded-none border bg-map-panel shadow-lg backdrop-blur` (Radius 0).
+- Icons aus `lucide-react`. Jeder Icon-Button hat ein `aria-label`.
+- Mobile first: Layout zuerst für 375 px Breite, dann `md:` / `lg:`.

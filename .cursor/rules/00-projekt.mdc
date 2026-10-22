@@ -1,0 +1,53 @@
+---
+description: Projektüberblick, Arbeitsweise und Stack für die Road-to-Athen-Karte
+alwaysApply: true
+---
+
+# Road to Athen – Reise-Karte
+
+Statische Webseite: Karte mit Relief, 32 Rad-Etappen, Fotos/Videos an ihrer Aufnahmeposition.
+Maßgeblich sind diese Dokumente – vor jeder größeren Aufgabe lesen:
+
+- @docs/PROJECT_BRIEF.md – Ziele, Funktionen, Phasen, Akzeptanzkriterien
+- @docs/DATA_SPEC.md – Rohdaten, Pipeline, Ausgabeformate, Typen
+- @docs/DESIGN_SYSTEM.md – Farben, Schrift, Komponenten
+- @docs/PLAN.md – der freigegebene Umsetzungsplan (wird in Phase 0 erstellt)
+
+## Arbeitsweise
+
+- Erst planen, dann bauen. Bei neuen Phasen zuerst den Plan-Abschnitt aus docs/PLAN.md
+  bestätigen lassen. Unklarheiten als Frage stellen statt raten.
+- Immer nur **eine Phase** auf einmal. Am Ende: `npm run build` und `npm run lint` fehlerfrei,
+  kurze Anleitung, wie man das Ergebnis im Browser prüft, Haken in docs/PLAN.md setzen.
+- Kleine, nachvollziehbare Änderungen. Keine Bibliotheken ergänzen, die nicht im Plan stehen,
+  ohne vorher zu fragen.
+- Kommunikation mit dem Nutzer auf Deutsch. Code, Bezeichner und Commits auf Englisch.
+
+## Stack
+
+Vite + React + TypeScript (strict), Tailwind CSS v4, shadcn/ui, React Router,
+MapLibre GL JS über `react-map-gl/maplibre`, Recharts über shadcn Chart, Node-Scripts mit `tsx`.
+Paketmanager: npm. Node ≥ 20.19.
+
+## Struktur
+
+```
+docs/                 Brief, Spezifikation, Designsystem, Plan
+raw/                  Strava-Export (nicht im Git, nicht öffnen – siehe 30-daten.mdc)
+fixtures/             erfundene Beispieldaten
+scripts/              Datenpipeline (build-data.ts, config.ts)
+public/data, public/media   erzeugt von der Pipeline (nicht im Git)
+src/
+  components/ui/      shadcn (generiert)
+  components/         eigene Komponenten (StageList, StageStats, MediaLightbox …)
+  features/map/       alles rund um MapLibre (Layer, Marker, Hooks)
+  lib/                Hilfsfunktionen, map-theme.ts, Formatierung
+  routes/             Seiten: Overview, Stage
+  types/data.ts       Typen aus DATA_SPEC.md
+```
+
+## Konventionen
+
+- Zahlen/Datum mit `Intl` und Locale `de-DE` formatieren, Zeiten in der Zeitzone der Etappe.
+- Daten mit `fetch` aus `/data/…` laden; Detailspuren erst bei Bedarf.
+- Komponenten klein halten, keine Logik in JSX-Ausdrücken über mehrere Zeilen.
