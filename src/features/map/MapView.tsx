@@ -38,6 +38,11 @@ type MapViewProps = {
     | GeoJSON.FeatureCollection
     | null
   fitBoundsTarget?: [number, number, number, number] | null
+  /**
+   * Full-trip bbox for the cold-start globe → route intro.
+   * Falls back to fitBoundsTarget when omitted.
+   */
+  introBounds?: [number, number, number, number] | null
   hoverPoint?: [number, number] | null
   /** Continuous scrub follow — easeTo center, skips fitBounds while set. */
   followPoint?: [number, number] | null
@@ -56,6 +61,18 @@ type MapViewProps = {
   hideStageEnds?: boolean
 }
 
+/** Whole-Earth start before the intro fly-in. */
+const GLOBE_INTRO_VIEW = {
+  longitude: 20,
+  latitude: 42,
+  zoom: 1.15,
+  pitch: 0,
+  bearing: 0,
+} as const
+
+const INTRO_HOLD_MS = 700
+const INTRO_FLY_MS = 3200
+
 const ROUTE_HIT_LAYERS = [
   "route-hit",
   "route-muted",
@@ -70,6 +87,7 @@ function FitBounds({
   suspended,
   terrain3d,
   fitEpoch = 0,
+  enabled = true,
 }: {
   bounds: [number, number, number, number] | null | undefined
   padding?: MapPadding
@@ -77,10 +95,12 @@ function FitBounds({
   suspended?: boolean
   terrain3d?: boolean
   fitEpoch?: number
+  /** False while globe intro owns the camera. */
+  enabled?: boolean
 }) {
   const { current: map } = useMap()
   useEffect(() => {
-    if (!map || !bounds || suspended) return
+    if (!map || !bounds || suspended || !enabled) return
     const [minLng, minLat, maxLng, maxLat] = bounds
     if (![minLng, minLat, maxLng, maxLat].every(Number.isFinite)) return
     map.fitBounds(
@@ -96,7 +116,128 @@ function FitBounds({
         essential: true,
       },
     )
-  }, [map, bounds, padding, suspended, terrain3d, fitEpoch])
+  }, [map, bounds, padding, suspended, terrain3d, fitEpoch, enabled])
+  return null
+}
+
+/** Enable MapLibre globe projection (sphere when zoomed out). */
+function GlobeProjection() {
+  const { current: map } = useMap()
+
+  useEffect(() => {
+    if (!map) return
+    const m = map.getMap()
+
+    const apply = () => {
+      try {
+        m.setProjection({ type: "globe" })
+        // Soft atmosphere so the sphere reads against space
+        m.setSky({
+          "atmosphere-blend": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            0,
+            1,
+            8,
+            0.4,
+            12,
+            0,
+          ],
+        })
+      } catch (err) {
+        console.warn("Globe projection could not be applied:", err)
+      }
+    }
+
+    if (m.isStyleLoaded()) apply()
+    else m.once("load", apply)
+
+    m.on("style.load", apply)
+    return () => {
+      m.off("style.load", apply)
+    }
+  }, [map])
+
+  return null
+}
+
+/**
+ * Cold start: hold on the whole Earth, then fly in to the full route once.
+ * Subsequent stage/overview fits are handled by FitBounds.
+ */
+function GlobeIntro({
+  bounds,
+  padding,
+  onComplete,
+}: {
+  bounds: [number, number, number, number] | null | undefined
+  padding?: MapPadding
+  onComplete: () => void
+}) {
+  const { current: map } = useMap()
+  const started = useRef(false)
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
+
+  useEffect(() => {
+    if (!map || !bounds || started.current) return
+    const [minLng, minLat, maxLng, maxLat] = bounds
+    if (![minLng, minLat, maxLng, maxLat].every(Number.isFinite)) return
+
+    started.current = true
+    const m = map.getMap()
+    const centerLng = (minLng + maxLng) / 2
+    const centerLat = (minLat + maxLat) / 2
+    const timers: number[] = []
+
+    const run = () => {
+      try {
+        m.jumpTo({
+          center: [centerLng, centerLat],
+          zoom: GLOBE_INTRO_VIEW.zoom,
+          pitch: 0,
+          bearing: 0,
+        })
+      } catch {
+        /* style may still be swapping */
+      }
+
+      timers.push(
+        window.setTimeout(() => {
+          m.fitBounds(
+            [
+              [minLng, minLat],
+              [maxLng, maxLat],
+            ],
+            {
+              padding: padding ?? { top: 80, bottom: 80, left: 80, right: 80 },
+              duration: INTRO_FLY_MS,
+              pitch: 0,
+              bearing: 0,
+              essential: true,
+            },
+          )
+          timers.push(
+            window.setTimeout(() => {
+              onCompleteRef.current()
+            }, INTRO_FLY_MS + 50),
+          )
+        }, INTRO_HOLD_MS),
+      )
+    }
+
+    if (m.isStyleLoaded()) run()
+    else m.once("load", run)
+
+    return () => {
+      for (const id of timers) window.clearTimeout(id)
+      m.off("load", run)
+      // Allow Strict Mode remount to schedule again
+      started.current = false
+    }
+  }, [map, bounds, padding])
+
   return null
 }
 
@@ -219,6 +360,98 @@ function Hillshade({ enabled }: { enabled: boolean }) {
   return null
 }
 
+/**
+ * Stronger country borders + darker water on whatever basemap is loaded.
+ * Outdoors is also patched at adapt time; this covers Carto / Liberty fallbacks.
+ */
+function BasemapTweaks() {
+  const { current: map } = useMap()
+
+  useEffect(() => {
+    if (!map) return
+    const m = map.getMap()
+
+    const setPaint = (id: string, prop: string, value: unknown) => {
+      try {
+        if (m.getLayer(id)) {
+          // Style-specific props; cast keeps MapLibre's strict paint keys happy
+          m.setPaintProperty(id, prop as never, value as never)
+        }
+      } catch {
+        /* layer missing or prop unsupported */
+      }
+    }
+
+    const apply = () => {
+      setPaint("water", "fill-color", mapTheme.water)
+      setPaint("water-shadow", "fill-color", mapTheme.waterDepth)
+      setPaint("waterway", "line-color", mapTheme.water)
+
+      // Country borders (Mapbox Outdoors ids)
+      setPaint("admin-0-boundary", "line-color", mapTheme.countryBorder)
+      setPaint("admin-0-boundary", "line-opacity", 0.95)
+      setPaint("admin-0-boundary", "line-dasharray", [1, 0])
+      setPaint("admin-0-boundary", "line-width", [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        2,
+        0.9,
+        6,
+        1.4,
+        12,
+        2.6,
+      ])
+      setPaint("admin-0-boundary-bg", "line-color", mapTheme.countryBorderHalo)
+      setPaint("admin-0-boundary-bg", "line-blur", 0)
+      setPaint("admin-0-boundary-bg", "line-opacity", [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        1,
+        0.35,
+        3,
+        0.7,
+        8,
+        0.85,
+      ])
+      setPaint("admin-0-boundary-bg", "line-width", [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        2,
+        2.5,
+        6,
+        4,
+        12,
+        7,
+      ])
+      setPaint("admin-0-boundary-disputed", "line-color", mapTheme.countryBorder)
+
+      // Common Carto / OpenFreeMap layer names
+      for (const id of [
+        "boundary_country",
+        "boundary_country_outline",
+        "admin_country",
+        "country_boundary",
+      ]) {
+        setPaint(id, "line-color", mapTheme.countryBorder)
+        setPaint(id, "line-width", 1.5)
+        setPaint(id, "line-opacity", 0.9)
+      }
+    }
+
+    if (m.isStyleLoaded()) apply()
+    else m.once("load", apply)
+    m.on("style.load", apply)
+    return () => {
+      m.off("style.load", apply)
+    }
+  }, [map])
+
+  return null
+}
+
 /** DEM mesh + pitched camera for stage view; flat overview otherwise. */
 function Terrain3d({ enabled }: { enabled: boolean }) {
   const { current: map } = useMap()
@@ -270,6 +503,7 @@ export function MapView({
   activeStageNr,
   detailLine,
   fitBoundsTarget,
+  introBounds,
   hoverPoint,
   followPoint,
   terrain3d = false,
@@ -285,8 +519,10 @@ export function MapView({
   )
   /** True when Mapbox Outdoors style is active (has own relief — skip DEM hillshade). */
   const [outdoorsActive, setOutdoorsActive] = useState(false)
+  const [introComplete, setIntroComplete] = useState(false)
   const usedFallback = useRef(false)
   const scrubbing = followPoint != null
+  const globeIntroBounds = introBounds ?? fitBoundsTarget
 
   useEffect(() => {
     const token = mapboxTokenFromEnv()
@@ -435,8 +671,8 @@ export function MapView({
     <Map
       ref={mapRef}
       mapStyle={mapStyle}
-      initialViewState={{ longitude: 16, latitude: 45, zoom: 5 }}
-      style={{ width: "100%", height: "100%", background: "#d8dde3" }}
+      initialViewState={GLOBE_INTRO_VIEW}
+      style={{ width: "100%", height: "100%", background: "#0b1020" }}
       attributionControl={false}
       interactiveLayerIds={
         onStageSelect ? [...ROUTE_HIT_LAYERS] : undefined
@@ -475,6 +711,15 @@ export function MapView({
     >
       <AttributionControl compact position="bottom-right" />
       <NavigationControl position="top-right" showCompass={!terrain3d} />
+      <GlobeProjection />
+      <BasemapTweaks />
+      {!introComplete && (
+        <GlobeIntro
+          bounds={globeIntroBounds}
+          padding={padding}
+          onComplete={() => setIntroComplete(true)}
+        />
+      )}
       {/* Outdoors already includes vector hillshade; DEM hillshade only as fallback look */}
       <Hillshade enabled={!outdoorsActive} />
       <Terrain3d enabled={terrain3d} />
@@ -484,6 +729,7 @@ export function MapView({
         suspended={scrubbing}
         terrain3d={terrain3d}
         fitEpoch={fitEpoch}
+        enabled={introComplete}
       />
       <FollowPoint point={followPoint} zoom={terrain3d ? 10 : 9} />
 

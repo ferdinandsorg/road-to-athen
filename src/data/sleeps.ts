@@ -9,6 +9,7 @@ export type SleepKind =
   | "hostel"
   | "airbnb"
   | "friend"
+  | "garden"
 
 export type SleepNight = {
   /** 1-based night index in the trip diary */
@@ -40,16 +41,13 @@ const RAW: Array<{
   image?: string
 }> = [
   {
-    kind: "tent",
-    label: "Familie Klaeck",
-    detail: "Fischerdorf 8, 01665 Klipphausen-Gauernitz",
-    phone: "015773801664",
+    kind: "garden",
+    label: "1Nite Tent",
   },
   { kind: "wild", label: "Park4Night" },
   {
     kind: "camping",
-    label: "Barbora Kemp",
-    detail: "auf der Terrasse",
+    label: "Auf der Terrasse",
   },
   { kind: "wild", label: "Ferienlager" },
   {
@@ -66,40 +64,38 @@ const RAW: Array<{
   { kind: "wild", label: "Bürgermeisterin zertifiziert" },
   { kind: "hotel", label: "Osijek" },
   { kind: "wild", label: "Am Fluss mit den 3 Boys" },
-  { kind: "camping", label: "Eko Camping" },
-  { kind: "hotel", label: "Old Town Residence" },
-  { kind: "hotel", label: "Old Town Residence" },
+  { kind: "camping" },
+  { kind: "hotel" },
+  { kind: "hotel" },
   { kind: "wild", label: "Zip Line" },
   {
-    kind: "camping",
-    label: "Katun Camp Durmitor",
+    kind: "camping"
   },
   { kind: "wild", label: "Omi im Wald" },
-  { kind: "hotel", label: "Implex" },
-  { kind: "hotel", label: "Implex" },
-  { kind: "wild", label: "Garten in Ferizaj" },
+  { kind: "hotel" },
+  { kind: "hotel" },
+  { kind: "garden", label: "Garten mit Hühnern" },
   { kind: "wild", label: "Mavrovo Lake" },
-  { kind: "camping", label: "Camping Lira" },
-  { kind: "camping", label: "Camping Lira" },
-  { kind: "wild", label: "Cërrik" },
+  { kind: "camping", label: "Ganz alleine" },
+  { kind: "camping", label: "Ganz alleine" },
+  { kind: "wild", label: "Zwischen Feigen und Ziegen" },
   {
-    kind: "camping",
-    label: "Eco Camping Valono",
+    kind: "camping"
   },
-  { kind: "hostel", label: "Trip'n'Hostel Seaside" },
-  { kind: "hostel", label: "Trip'n'Hostel Seaside" },
+  { kind: "hostel", label: "Party Hostel 🤡" },
+  { kind: "hostel", label: "Party Hostel 🤡" },
   { kind: "wild", label: "Strand zwischen deutschen Campern" },
-  { kind: "camping", label: "Kalami" },
+  { kind: "camping" },
   { kind: "wild", label: "Taverne, Kanali" },
   { kind: "wild", label: "Ambrakischer Golf" },
   { kind: "wild", label: "Lagune Mesolongi" },
-  { kind: "camping", label: "Akrata Beach Camping" },
-  { kind: "wild", label: "Kirche" },
-  { kind: "airbnb", label: "mit Johanna" },
-  { kind: "airbnb", label: "mit Johanna" },
-  { kind: "airbnb", label: "mit Johanna" },
-  { kind: "airbnb", label: "mit Johanna" },
-  { kind: "airbnb", label: "mit Johanna" },
+  { kind: "camping" },
+  { kind: "wild", label: "Vor Kirche" },
+  { kind: "airbnb" },
+  { kind: "airbnb" },
+  { kind: "airbnb" },
+  { kind: "airbnb" },
+  { kind: "airbnb" },
 ]
 
 const TRIP_START_UTC = Date.UTC(2026, 8, 7) // 2026-09-07
@@ -190,6 +186,7 @@ export const sleepKindLabel: Record<SleepKind, string> = {
   hostel: "Hostel",
   airbnb: "Airbnb",
   friend: "Bei Freunden",
+  garden: "Garten",
 }
 
 export function getStageSleep(
@@ -209,6 +206,7 @@ export function countSleepNightsByKind(): Record<SleepKind, number> {
     hostel: 0,
     airbnb: 0,
     friend: 0,
+    garden: 0,
   }
   for (const n of sleepNights) {
     counts[n.kind]++
@@ -224,6 +222,7 @@ export const sleepKindOrder: SleepKind[] = [
   "hostel",
   "airbnb",
   "friend",
+  "garden",
   "tent",
 ]
 
@@ -236,4 +235,5 @@ export const sleepKindShortLabel: Record<SleepKind, string> = {
   hostel: "Hostel",
   airbnb: "Airbnb",
   friend: "Freunde",
+  garden: "Garten",
 }

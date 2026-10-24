@@ -14,11 +14,12 @@
 
   /* Greece: white + strong blue */
   --background: oklch(1 0 0);
-  --foreground: oklch(0.2 0.02 260);
+  /* Figma Vulcan / azure-9 */
+  --foreground: #11161f;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 260);
+  --card-foreground: #11161f;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.02 260);
+  --popover-foreground: #11161f;
 
   /* #1f26f0 */
   --primary: oklch(0.45 0.28 264);
@@ -100,6 +101,17 @@
   --map-panel: oklch(0.22 0.02 260 / 0.95);
 }
 
+/* Stat figures — Uncut Bold, Figma “lining / tabular / slashed-zero” */
+@utility stat-value {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.75rem;
+  letter-spacing: -0.0375rem;
+  font-variant-numeric: lining-nums tabular-nums slashed-zero;
+  color: var(--foreground);
+}
+
 @theme inline {
   --font-sans: "Uncut Sans", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Uncut Sans", ui-sans-serif, system-ui, sans-serif;
@@ -174,5 +186,13 @@
   }
   .maplibregl-canvas {
     outline: none;
+  }
+  /*
+   * Lucide defaults to round caps/joins. Match --radius: 0 with square strokes.
+   * Path geometry in some glyphs stays slightly soft — that is Lucide’s design.
+   */
+  svg.lucide {
+    stroke-linecap: square;
+    stroke-linejoin: miter;
   }
 }

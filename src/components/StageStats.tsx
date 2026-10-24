@@ -1,4 +1,5 @@
 import type { Stage } from "@/types/data"
+import { Stat } from "@/components/Stat"
 import {
   formatDuration,
   formatElevation,
@@ -10,32 +11,6 @@ import {
 
 type Props = {
   stage: Stage
-}
-
-function Stat({
-  label,
-  value,
-  unit,
-}: {
-  label: string
-  value: string
-  unit?: string
-}) {
-  return (
-    <div>
-      <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 text-xl font-semibold tabular-nums">
-        {value}
-        {unit ? (
-          <span className="ml-1 text-sm font-normal text-muted-foreground">
-            {unit}
-          </span>
-        ) : null}
-      </p>
-    </div>
-  )
 }
 
 export function StageStats({ stage }: Props) {

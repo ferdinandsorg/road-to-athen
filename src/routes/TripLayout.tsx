@@ -131,12 +131,12 @@ export function TripLayout() {
 
   const mapPadding = useMemo(
     () => ({
-      top: 80,
+      top: collapsed ? 120 : 80,
       bottom: 140,
       left: 40,
       right: 40,
     }),
-    [],
+    [collapsed],
   )
 
   const stageMedia = useMemo(
@@ -213,6 +213,7 @@ export function TripLayout() {
           activeStageNr={isStage ? activeNr : null}
           detailLine={isStage ? (detail?.line ?? null) : null}
           fitBoundsTarget={fitBoundsTarget}
+          introBounds={overviewBounds}
           fitEpoch={fitEpoch}
           hoverPoint={hoverPoint}
           followPoint={followPoint}

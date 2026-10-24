@@ -34,6 +34,15 @@ export const mapTheme = {
     bearing: 18,
   },
   routeWidth: { active: 4, casing: 7, muted: 3 },
+  /**
+   * Basemap tweaks (Mapbox Outdoors + fallbacks).
+   * Applied after style load — keeps Studio export editable.
+   */
+  water: "#3a6f9c",
+  waterDepth: "#2f5f88",
+  /** Country (admin-0) borders */
+  countryBorder: "#4a5568",
+  countryBorderHalo: "rgba(255, 255, 255, 0.55)",
 } as const
 
 export const mapSources = {

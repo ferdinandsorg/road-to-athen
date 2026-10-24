@@ -1,6 +1,5 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
-import { Menu, PanelLeft, PanelLeftClose } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -10,6 +9,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer"
+import { Icons } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -25,6 +25,74 @@ type Props = {
   onCollapsedChange?: (collapsed: boolean) => void
 }
 
+const PANEL_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"
+const PANEL_MS = 480
+
+const SIDEBAR_MIN = 280
+const SIDEBAR_MAX = 560
+const SIDEBAR_DEFAULT = 360
+const SIDEBAR_WIDTH_KEY = "rta-sidebar-width"
+
+function clampSidebarWidth(n: number): number {
+  return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Math.round(n)))
+}
+
+function readStoredWidth(): number {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_WIDTH_KEY)
+    if (!raw) return SIDEBAR_DEFAULT
+    const n = Number(raw)
+    return Number.isFinite(n) ? clampSidebarWidth(n) : SIDEBAR_DEFAULT
+  } catch {
+    return SIDEBAR_DEFAULT
+  }
+}
+
+function BrandHeader({
+  collapsed,
+  onToggle,
+}: {
+  collapsed: boolean
+  onToggle: () => void
+}) {
+  return (
+    <div
+      className={cn(
+        "flex",
+        collapsed ? "w-max items-center gap-2" : "items-start gap-3",
+      )}
+    >
+      <div className={cn(collapsed ? "w-max" : "min-w-0 flex-1")}>
+        <Link to="/" className="block">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-primary md:text-3xl">
+            Road to Athen
+          </h1>
+        </Link>
+        {!collapsed ? (
+          <p className="mt-2 text-sm text-muted-foreground">
+            Mit dem Fahrrad von Leipzig nach Athen
+          </p>
+        ) : null}
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label={collapsed ? "Sidebar öffnen" : "Sidebar einklappen"}
+        className={cn(
+          "size-9 shrink-0 rounded-none shadow-none",
+          collapsed
+            ? "border border-border bg-background text-primary hover:bg-background hover:text-primary"
+            : "border-0 bg-transparent text-primary hover:bg-transparent hover:text-primary",
+        )}
+        onClick={onToggle}
+      >
+        {collapsed ? <Icons.panelLeft /> : <Icons.panelLeftClose />}
+      </Button>
+    </div>
+  )
+}
+
 export function AppShell({
   map,
   panel,
@@ -37,67 +105,165 @@ export function AppShell({
   const [internalCollapsed, setInternalCollapsed] = useState(false)
   const collapsed = collapsedProp ?? internalCollapsed
 
+  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT)
+  const [resizing, setResizing] = useState(false)
+  const widthRef = useRef(sidebarWidth)
+
+  useEffect(() => {
+    setSidebarWidth(readStoredWidth())
+  }, [])
+
+  useEffect(() => {
+    widthRef.current = sidebarWidth
+  }, [sidebarWidth])
+
   function setCollapsed(next: boolean) {
     onCollapsedChange?.(next)
     if (collapsedProp === undefined) setInternalCollapsed(next)
   }
 
+  function onResizePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (collapsed) return
+    e.preventDefault()
+    const handle = e.currentTarget
+    handle.setPointerCapture(e.pointerId)
+    const startX = e.clientX
+    const startW = widthRef.current
+    setResizing(true)
+
+    function onMove(ev: PointerEvent) {
+      const next = clampSidebarWidth(startW + (ev.clientX - startX))
+      widthRef.current = next
+      setSidebarWidth(next)
+    }
+
+    function onUp(ev: PointerEvent) {
+      handle.releasePointerCapture(ev.pointerId)
+      handle.removeEventListener("pointermove", onMove)
+      handle.removeEventListener("pointerup", onUp)
+      handle.removeEventListener("pointercancel", onUp)
+      setResizing(false)
+      try {
+        localStorage.setItem(SIDEBAR_WIDTH_KEY, String(widthRef.current))
+      } catch {
+        /* ignore */
+      }
+    }
+
+    handle.addEventListener("pointermove", onMove)
+    handle.addEventListener("pointerup", onUp)
+    handle.addEventListener("pointercancel", onUp)
+  }
+
   return (
     <div className="relative flex h-full w-full flex-col md:flex-row">
+      {/* Desktop sidebar — layout sibling of the map (not an overlay) */}
       <aside
         className={cn(
-          "z-20 hidden h-full min-w-0 shrink-0 flex-col overflow-hidden border-r bg-map-panel transition-[width] duration-300 ease-out md:flex",
-          collapsed ? "w-0 border-r-0" : "w-80 lg:w-96",
+          "relative z-20 hidden h-full shrink-0 flex-col overflow-hidden border-r bg-map-panel md:flex",
+          collapsed ? "border-r-0" : "border-border",
         )}
+        style={{
+          width: collapsed ? 0 : sidebarWidth,
+          transition: resizing
+            ? "none"
+            : `width ${PANEL_MS}ms ${PANEL_EASE}, border-color ${PANEL_MS}ms ${PANEL_EASE}`,
+        }}
         aria-hidden={collapsed}
       >
-        <div className="flex h-full w-full min-w-0 flex-col">
-          <div className="shrink-0 border-b p-6 md:p-8">
-            <Link to="/" className="block">
-              <h1 className="font-heading text-2xl font-bold tracking-tight text-primary md:text-3xl">
-                Road to Athen
-              </h1>
-            </Link>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Mit dem Fahrrad von Leipzig nach Athen
-            </p>
+        <div
+          className="flex h-full w-full min-w-0 flex-col"
+          style={{ width: sidebarWidth }}
+        >
+          <div className="shrink-0 border-b border-border px-4 py-5 md:px-6 md:py-6">
+            <BrandHeader
+              collapsed={false}
+              onToggle={() => setCollapsed(true)}
+            />
           </div>
-          <ScrollArea
-            className={cn(
-              "min-w-0 w-full",
-              sidebarFooter
-                ? "h-[calc(100dvh-8.5rem-3.5rem)]"
-                : "h-[calc(100dvh-8.5rem)]",
-            )}
-          >
-            <div className="box-border flex w-full min-w-0 flex-col gap-6 overflow-x-hidden p-6 md:gap-8 md:p-8">
-              {panel}
+
+          <div className="grid min-h-0 flex-1 grid-rows-[1fr]">
+            <div className="min-h-0 overflow-hidden">
+              <div className="flex h-full min-h-0 flex-col">
+                <ScrollArea
+                  className={cn(
+                    "min-w-0 w-full",
+                    sidebarFooter
+                      ? "h-[calc(100dvh-8.5rem-3.5rem)]"
+                      : "h-[calc(100dvh-8.5rem)]",
+                  )}
+                >
+                  <div className="box-border flex w-full min-w-0 flex-col gap-5 overflow-x-hidden px-4 py-5 md:gap-6 md:px-6 md:py-6">
+                    {panel}
+                  </div>
+                </ScrollArea>
+                {sidebarFooter ? (
+                  <div className="shrink-0 border-t px-4 py-3 md:px-6 md:py-4">
+                    {sidebarFooter}
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </ScrollArea>
-          {sidebarFooter ? (
-            <div className="shrink-0 border-t px-6 py-4 md:px-8">
-              {sidebarFooter}
-            </div>
-          ) : null}
+          </div>
         </div>
+
+        {/* Drag handle — resize sidebar width */}
+        {!collapsed ? (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Sidebar-Breite anpassen"
+            aria-valuemin={SIDEBAR_MIN}
+            aria-valuemax={SIDEBAR_MAX}
+            aria-valuenow={sidebarWidth}
+            tabIndex={0}
+            className={cn(
+              "absolute top-0 right-0 z-30 h-full w-1.5 cursor-col-resize touch-none",
+              "bg-transparent hover:bg-primary/20 active:bg-primary/30",
+              resizing && "bg-primary/30",
+            )}
+            onPointerDown={onResizePointerDown}
+            onKeyDown={(e) => {
+              const step = e.shiftKey ? 32 : 16
+              if (e.key === "ArrowLeft") {
+                e.preventDefault()
+                const next = clampSidebarWidth(sidebarWidth - step)
+                setSidebarWidth(next)
+                try {
+                  localStorage.setItem(SIDEBAR_WIDTH_KEY, String(next))
+                } catch {
+                  /* ignore */
+                }
+              } else if (e.key === "ArrowRight") {
+                e.preventDefault()
+                const next = clampSidebarWidth(sidebarWidth + step)
+                setSidebarWidth(next)
+                try {
+                  localStorage.setItem(SIDEBAR_WIDTH_KEY, String(next))
+                } catch {
+                  /* ignore */
+                }
+              }
+            }}
+          />
+        ) : null}
       </aside>
 
+      {/* Map column — starts where the sidebar ends */}
       <div className="relative min-h-0 min-w-0 flex-1">
         <div className="absolute inset-0">{map}</div>
 
-        {/* Desktop sidebar toggle */}
-        <div className="pointer-events-none absolute top-4 left-4 z-20 hidden md:block md:top-6 md:left-6">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            aria-label={collapsed ? "Sidebar öffnen" : "Sidebar einklappen"}
-            className="pointer-events-auto rounded-none border bg-map-panel shadow-lg"
-            onClick={() => setCollapsed(!collapsed)}
-          >
-            {collapsed ? <PanelLeft /> : <PanelLeftClose />}
-          </Button>
-        </div>
+        {/* Collapsed brand chip over the map */}
+        {collapsed ? (
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 hidden p-3 md:block md:p-6">
+            <div className="pointer-events-auto w-max">
+              <BrandHeader
+                collapsed
+                onToggle={() => setCollapsed(false)}
+              />
+            </div>
+          </div>
+        ) : null}
 
         {/* Mobile drawer */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-4 p-4 md:hidden">
@@ -108,9 +274,9 @@ export function AppShell({
                   variant="outline"
                   size="icon"
                   aria-label="Details öffnen"
-                  className="rounded-none border bg-map-panel shadow-lg"
+                  className="rounded-none border bg-background shadow-lg"
                 >
-                  <Menu />
+                  <Icons.menu />
                 </Button>
               </DrawerTrigger>
               <DrawerContent className="rounded-none">
@@ -132,7 +298,6 @@ export function AppShell({
           </div>
         </div>
 
-        {/* Timeline — full width, same padding on sides as bottom */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:p-6">
           <div className="pointer-events-auto w-full">{timeline}</div>
         </div>
