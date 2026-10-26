@@ -25,8 +25,10 @@ dist-ssr
 
 # --- Road to Athen ---
 raw/
-public/data/
+# Large media binaries: only on the webserver (local `npm run deploy`).
 public/media/
+# Strava-derived media index — keep on server / local; not required in CI if already uploaded.
+public/data/media.json
 .n/
 
 public/fixtures/

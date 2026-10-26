@@ -29,13 +29,24 @@ export type StageSleep = SleepNight & {
   stageNr: number
 }
 
+export const sleepKindLabel: Record<SleepKind, string> = {
+  tent: "One Night Tent",
+  wild: "Wild",
+  camping: "Campingplatz",
+  hotel: "Hotel",
+  hostel: "Hostel",
+  airbnb: "Airbnb",
+  friend: "Bei Freunden",
+  garden: "Garten",
+}
+
 /**
  * Diary nights in order. Night 1 = evening of first riding day (2026-09-07).
  * Duplicate consecutive places = rest days (same stay, multiple nights).
  */
 const RAW: Array<{
   kind: SleepKind
-  label: string
+  label?: string
   detail?: string
   phone?: string
   image?: string
@@ -102,7 +113,11 @@ const TRIP_START_UTC = Date.UTC(2026, 8, 7) // 2026-09-07
 
 export const sleepNights: SleepNight[] = RAW.map((row, i) => ({
   night: i + 1,
-  ...row,
+  kind: row.kind,
+  label: row.label ?? sleepKindLabel[row.kind],
+  detail: row.detail,
+  phone: row.phone,
+  image: row.image,
 }))
 
 function sameStay(a: SleepNight, b: SleepNight): boolean {
@@ -176,17 +191,6 @@ export function buildStageSleeps(stages: Stage[]): Map<number, StageSleep> {
   }
 
   return result
-}
-
-export const sleepKindLabel: Record<SleepKind, string> = {
-  tent: "One Night Tent",
-  wild: "Wild",
-  camping: "Campingplatz",
-  hotel: "Hotel",
-  hostel: "Hostel",
-  airbnb: "Airbnb",
-  friend: "Bei Freunden",
-  garden: "Garten",
 }
 
 export function getStageSleep(

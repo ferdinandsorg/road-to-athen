@@ -32,4 +32,13 @@ export default defineConfig({
       "@": path.resolve(root, "./src"),
     },
   },
+  // Reachable on the LAN (phone on same Wi‑Fi): http://<your-mac-ip>:5173
+  server: {
+    host: true,
+    port: 5173,
+  },
+  preview: {
+    host: true,
+    port: 4173,
+  },
 })

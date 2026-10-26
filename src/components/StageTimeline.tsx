@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { Stage } from "@/types/data"
 import {
   buildStageSpans,
@@ -28,10 +28,10 @@ type Props = {
 /** One click per this many progress steps across the full bar (~80 clicks end-to-end). */
 const SCRUB_TICK_STEPS = 80
 
-function progressFromClientX(
-  el: HTMLElement,
-  clientX: number,
-): number {
+/** Mobile: ~7 day marks visible; track grows so you scroll for the rest. */
+const MOBILE_DAY_CELL_PX = 56
+
+function progressFromClientX(el: HTMLElement, clientX: number): number {
   const rect = el.getBoundingClientRect()
   if (rect.width <= 0) return 0
   return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
@@ -46,7 +46,9 @@ export function StageTimeline({
   onSelectStage,
   className,
 }: Props) {
-  const trackRef = useRef<HTMLDivElement>(null)
+  const desktopTrackRef = useRef<HTMLDivElement>(null)
+  const mobileTrackRef = useRef<HTMLDivElement>(null)
+  const mobileScrollRef = useRef<HTMLDivElement>(null)
   const draggingRef = useRef(false)
   const [dragging, setDragging] = useState(false)
   const { tick, reset, unlock } = useFreewheelSound()
@@ -58,6 +60,16 @@ export function StageTimeline({
     () => stages.reduce((sum, s) => sum + s.elevationGainM, 0),
     [stages],
   )
+
+  const dayCount = useMemo(() => {
+    const days = new Set(stages.map((s) => s.day))
+    return Math.max(days.size, 1)
+  }, [stages])
+
+  const mobileTrackWidth = Math.max(
+    dayCount + 1, // start “0” + each day end
+    spans.length + 1,
+  ) * MOBILE_DAY_CELL_PX
 
   const hoverInfo = useMemo(() => {
     const nr = stageNrAtProgress(spans, totalM, progress)
@@ -93,31 +105,83 @@ export function StageTimeline({
     if (stageNr != null) onScrubEnd(stageNr, next)
   }
 
-  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    const el = trackRef.current
-    if (!el) return
-    unlock()
-    el.setPointerCapture(e.pointerId)
-    draggingRef.current = true
-    setDragging(true)
-    emitScrub(progressFromClientX(el, e.clientX))
+  function bindScrubHandlers(
+    trackRef: React.RefObject<HTMLDivElement | null>,
+    opts?: { ignoreButtons?: boolean },
+  ) {
+    function onPointerDown(e: React.PointerEvent<HTMLElement>) {
+      const el = trackRef.current
+      if (!el) return
+      if (
+        opts?.ignoreButtons &&
+        (e.target as HTMLElement).closest("button")
+      ) {
+        return
+      }
+      e.preventDefault()
+      e.stopPropagation()
+      unlock()
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+      draggingRef.current = true
+      setDragging(true)
+      emitScrub(progressFromClientX(el, e.clientX))
+    }
+
+    function onPointerMove(e: React.PointerEvent<HTMLElement>) {
+      if (!draggingRef.current) return
+      const el = trackRef.current
+      if (!el) return
+      e.preventDefault()
+      emitScrub(progressFromClientX(el, e.clientX))
+    }
+
+    function onPointerUp(e: React.PointerEvent<HTMLElement>) {
+      if (!draggingRef.current) return
+      const el = trackRef.current
+      if (!el) return
+      const next = progressFromClientX(el, e.clientX)
+      emitScrub(next)
+      endScrub(next)
+    }
+
+    return { onPointerDown, onPointerMove, onPointerUp }
   }
 
-  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (!draggingRef.current) return
-    const el = trackRef.current
-    if (!el) return
-    emitScrub(progressFromClientX(el, e.clientX))
-  }
+  const desktopScrub = bindScrubHandlers(desktopTrackRef, {
+    ignoreButtons: true,
+  })
+  const mobileThumbScrub = bindScrubHandlers(mobileTrackRef)
 
-  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
-    if (!draggingRef.current) return
-    const el = trackRef.current
-    if (!el) return
-    const next = progressFromClientX(el, e.clientX)
-    emitScrub(next)
-    endScrub(next)
-  }
+  // Keep the playhead roughly centered in the mobile scroll window.
+  useEffect(() => {
+    if (dragging) return
+    const scroll = mobileScrollRef.current
+    const track = mobileTrackRef.current
+    if (!scroll || !track || track.offsetWidth <= 0) return
+    const x = progress * track.offsetWidth
+    const nextLeft = x - scroll.clientWidth / 2
+    scroll.scrollLeft = Math.max(0, Math.min(nextLeft, track.offsetWidth - scroll.clientWidth))
+  }, [progress, dragging, mobileTrackWidth])
+
+  const metaRow = (
+    <div className="mt-1.5 flex items-center justify-between gap-3 text-[10px] uppercase tracking-wide text-muted-foreground md:mt-1 md:text-[10px]">
+      <span className="tabular-nums">
+        {hoverInfo.stage
+          ? `Etappe ${stageDisplayLabel(hoverInfo.stage, labels)}`
+          : "—"}
+        {dragging ? " · Scrub" : ""}
+      </span>
+      <span className="flex flex-wrap items-center justify-end gap-x-3 tabular-nums">
+        <span>
+          {formatKm(hoverInfo.km)} / {formatKm(totalM)} km
+        </span>
+        <span>
+          {formatElevation(hoverInfo.elevM)} /{" "}
+          {formatElevation(totalElevM)} hm
+        </span>
+      </span>
+    </div>
+  )
 
   return (
     <div
@@ -128,93 +192,158 @@ export function StageTimeline({
       role="group"
       aria-label="Reisetimeline"
     >
-      <div className="flex items-stretch">
-        <div className="min-w-0 flex-1 px-3 py-2.5 sm:px-4 sm:py-3">
+      {/* ——— Mobile: scroll for days; drag the square thumb to scrub ——— */}
+      <div className="px-3 py-3 md:hidden">
+        <div
+          ref={mobileScrollRef}
+          className="overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           <div
-            ref={trackRef}
-            className="relative h-11 cursor-ew-resize touch-none select-none sm:h-12"
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
+            ref={mobileTrackRef}
+            className="relative select-none"
+            style={{ width: mobileTrackWidth, height: 72 }}
             role="slider"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(progress * 100)}
             aria-label="Position auf der Route"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              const delta =
-                e.key === "ArrowRight" || e.key === "ArrowUp"
-                  ? 0.01
-                  : e.key === "ArrowLeft" || e.key === "ArrowDown"
-                    ? -0.01
-                    : 0
-              if (!delta) return
-              e.preventDefault()
-              const next = Math.min(1, Math.max(0, progress + delta))
-              emitScrub(next)
-              if (e.key === "Enter") endScrub(next)
-            }}
           >
-            {/* Baseline */}
-            <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-
-            {/* Active stage segment (e.g. Tag 8 → line from 7–8) */}
-            {activeStageNr != null &&
-              totalM > 0 &&
-              (() => {
-                const span = spans.find((s) => s.nr === activeStageNr)
-                if (!span) return null
-                const left = (span.startM / totalM) * 100
-                const width = ((span.endM - span.startM) / totalM) * 100
-                if (width <= 0) return null
-                return (
-                  <div
-                    className="pointer-events-none absolute top-1/2 h-0.5 -translate-y-1/2 bg-primary"
-                    style={{ left: `${left}%`, width: `${width}%` }}
-                    aria-hidden
-                  />
-                )
-              })()}
-
+            <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 bg-border" />
+            <ActiveSegment
+              spans={spans}
+              totalM={totalM}
+              activeStageNr={activeStageNr}
+              thick
+            />
             <StageTicks
               spans={spans}
               totalM={totalM}
               stages={stages}
               activeStageNr={activeStageNr}
               onSelectStage={onSelectStage}
+              size="lg"
             />
-
-            {/* Playhead */}
+            {/* Visual playhead + large touch thumb (scrub only here so scroll still works) */}
             <div
               className="pointer-events-none absolute top-0 bottom-0 w-px bg-primary"
               style={{ left: `${progress * 100}%` }}
+              aria-hidden
             >
-              <div className="absolute left-1/2 top-0 size-2 -translate-x-1/2 bg-primary" />
-              <div className="absolute left-1/2 bottom-0 size-2 -translate-x-1/2 bg-primary" />
+              <div className="absolute left-1/2 top-0 size-3 -translate-x-1/2 bg-primary" />
+              <div className="absolute left-1/2 bottom-0 size-3 -translate-x-1/2 bg-primary" />
             </div>
+            <button
+              type="button"
+              aria-label="Position ziehen"
+              className={cn(
+                "absolute top-1/2 z-10 size-12 -translate-x-1/2 -translate-y-1/2 touch-none",
+                "cursor-ew-resize border-2 border-primary bg-background",
+              )}
+              style={{ left: `${progress * 100}%` }}
+              onPointerDown={mobileThumbScrub.onPointerDown}
+              onPointerMove={mobileThumbScrub.onPointerMove}
+              onPointerUp={mobileThumbScrub.onPointerUp}
+              onPointerCancel={mobileThumbScrub.onPointerUp}
+            />
           </div>
+        </div>
+        <p className="mt-1.5 text-[10px] text-muted-foreground">
+          Wischen: weitere Etappen · Quadrat ziehen: scrubben
+        </p>
+        {metaRow}
+      </div>
 
-          <div className="mt-1 flex items-center justify-between gap-3 text-[10px] uppercase tracking-wide text-muted-foreground">
-            <span className="tabular-nums">
-              {hoverInfo.stage
-                ? `Etappe ${stageDisplayLabel(hoverInfo.stage, labels)}`
-                : "—"}
-              {dragging ? " · Scrub" : ""}
-            </span>
-            <span className="flex flex-wrap items-center justify-end gap-x-3 tabular-nums">
-              <span>
-                {formatKm(hoverInfo.km)} / {formatKm(totalM)} km
-              </span>
-              <span>
-                {formatElevation(hoverInfo.elevM)} /{" "}
-                {formatElevation(totalElevM)} hm
-              </span>
-            </span>
+      {/* ——— Desktop: unchanged compact full-width track ——— */}
+      <div className="hidden md:block">
+        <div className="flex items-stretch">
+          <div className="min-w-0 flex-1 px-3 py-2.5 sm:px-4 sm:py-3">
+            <div
+              ref={desktopTrackRef}
+              className="relative h-11 cursor-ew-resize touch-none select-none sm:h-12"
+              onPointerDown={desktopScrub.onPointerDown}
+              onPointerMove={desktopScrub.onPointerMove}
+              onPointerUp={desktopScrub.onPointerUp}
+              onPointerCancel={desktopScrub.onPointerUp}
+              role="slider"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress * 100)}
+              aria-label="Position auf der Route"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                const delta =
+                  e.key === "ArrowRight" || e.key === "ArrowUp"
+                    ? 0.01
+                    : e.key === "ArrowLeft" || e.key === "ArrowDown"
+                      ? -0.01
+                      : 0
+                if (!delta) return
+                e.preventDefault()
+                const next = Math.min(1, Math.max(0, progress + delta))
+                emitScrub(next)
+                if (e.key === "Enter") endScrub(next)
+              }}
+            >
+              <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+              <ActiveSegment
+                spans={spans}
+                totalM={totalM}
+                activeStageNr={activeStageNr}
+              />
+              <StageTicks
+                spans={spans}
+                totalM={totalM}
+                stages={stages}
+                activeStageNr={activeStageNr}
+                onSelectStage={onSelectStage}
+              />
+              <Playhead progress={progress} />
+            </div>
+            {metaRow}
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function ActiveSegment({
+  spans,
+  totalM,
+  activeStageNr,
+  thick = false,
+}: {
+  spans: StageSpan[]
+  totalM: number
+  activeStageNr: number | null
+  thick?: boolean
+}) {
+  if (activeStageNr == null || totalM <= 0) return null
+  const span = spans.find((s) => s.nr === activeStageNr)
+  if (!span) return null
+  const left = (span.startM / totalM) * 100
+  const width = ((span.endM - span.startM) / totalM) * 100
+  if (width <= 0) return null
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute top-1/2 -translate-y-1/2 bg-primary",
+        thick ? "h-1" : "h-0.5",
+      )}
+      style={{ left: `${left}%`, width: `${width}%` }}
+      aria-hidden
+    />
+  )
+}
+
+function Playhead({ progress }: { progress: number }) {
+  return (
+    <div
+      className="pointer-events-none absolute top-0 bottom-0 w-px bg-primary"
+      style={{ left: `${progress * 100}%` }}
+    >
+      <div className="absolute left-1/2 top-0 size-2 -translate-x-1/2 bg-primary" />
+      <div className="absolute left-1/2 bottom-0 size-2 -translate-x-1/2 bg-primary" />
     </div>
   )
 }
@@ -225,17 +354,20 @@ function StageTicks({
   stages,
   activeStageNr,
   onSelectStage,
+  size = "md",
 }: {
   spans: StageSpan[]
   totalM: number
   stages: Stage[]
   activeStageNr: number | null
   onSelectStage: (nr: number) => void
+  size?: "md" | "lg"
 }) {
   if (totalM <= 0 || spans.length === 0) return null
 
   const firstNr = spans[0]!.nr
   const activeStage = stages.find((s) => s.nr === activeStageNr) ?? null
+  const large = size === "lg"
 
   /**
    * Boundary marks: 0 at start, day number at each calendar day’s end.
@@ -269,7 +401,6 @@ function StageTicks({
     const leftPct = (span.endM / totalM) * 100
 
     if (!isLastOfDay) {
-      // Tick only between sub-stages of the same day (e.g. 16a | 16b)
       marks.push({
         key: `split-${span.nr}`,
         leftPct,
@@ -304,14 +435,23 @@ function StageTicks({
             className={cn(
               "absolute top-1/2 w-px -translate-y-1/2 bg-foreground/35",
               mark.leftPct >= 100 ? "right-0" : "left-0",
-              mark.active ? "h-5 bg-primary" : "h-3",
+              mark.active
+                ? large
+                  ? "h-7 bg-primary"
+                  : "h-5 bg-primary"
+                : large
+                  ? "h-5"
+                  : "h-3",
             )}
           />
           {mark.label != null && (
             <button
               type="button"
               className={cn(
-                "absolute top-0 text-[9px] font-medium uppercase tracking-wider tabular-nums sm:text-[10px]",
+                "absolute top-0 font-medium uppercase tracking-wider tabular-nums",
+                large
+                  ? "min-w-8 py-0.5 text-xs"
+                  : "text-[9px] sm:text-[10px]",
                 mark.leftPct <= 0
                   ? "left-0"
                   : mark.leftPct >= 100

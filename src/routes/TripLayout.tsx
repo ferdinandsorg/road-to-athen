@@ -8,6 +8,8 @@ import { MediaMarkers } from "@/features/map/MediaMarkers"
 import { SleepMarkers } from "@/features/map/SleepMarkers"
 import { useStageDetail, useTripData } from "@/hooks/useTripData"
 import { lineCoordinates } from "@/lib/geo-display"
+import { Icons } from "@/lib/icons"
+import { cn } from "@/lib/utils"
 import {
   buildRouteVertices,
   buildStageSpans,
@@ -26,6 +28,7 @@ export type TripOutletContext = {
   setActiveMediaId: (id: string | null) => void
   lightboxOpen: boolean
   setLightboxOpen: (open: boolean) => void
+  goToStage: (nr: number) => void
 }
 
 /**
@@ -43,6 +46,7 @@ export function TripLayout() {
   const { detail } = useStageDetail(isStage ? activeNr : null)
 
   const [collapsed, setCollapsed] = useState(false)
+  const [resizeEpoch, setResizeEpoch] = useState(0)
   const [scrubProgress, setScrubProgress] = useState<number | null>(null)
   const [pinnedProgress, setPinnedProgress] = useState<number | null>(null)
   const [hoverKm, setHoverKm] = useState<number | null>(null)
@@ -144,6 +148,19 @@ export function TripLayout() {
     [media, isStage, activeNr],
   )
 
+  const { prevStage, nextStage } = useMemo(() => {
+    if (!isStage || activeNr == null) {
+      return { prevStage: null, nextStage: null }
+    }
+    const ordered = [...stages].sort((a, b) => a.nr - b.nr)
+    const i = ordered.findIndex((s) => s.nr === activeNr)
+    if (i < 0) return { prevStage: null, nextStage: null }
+    return {
+      prevStage: i > 0 ? ordered[i - 1]! : null,
+      nextStage: i < ordered.length - 1 ? ordered[i + 1]! : null,
+    }
+  }, [stages, isStage, activeNr])
+
   function openMedia(item: MediaItem) {
     setActiveMediaId(item.id)
     setLightboxOpen(true)
@@ -174,6 +191,7 @@ export function TripLayout() {
     setActiveMediaId,
     lightboxOpen,
     setLightboxOpen,
+    goToStage,
   }
 
   if (loading) {
@@ -196,15 +214,56 @@ export function TripLayout() {
     <AppShell
       collapsed={collapsed}
       onCollapsedChange={setCollapsed}
+      onMapLayoutSettled={() => setResizeEpoch((n) => n + 1)}
       sidebarFooter={
         isStage ? (
-          <button
-            type="button"
-            onClick={goOverview}
-            className="text-left text-sm text-primary no-underline hover:underline"
-          >
-            ← Zum Überblick
-          </button>
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={goOverview}
+              className={cn(
+                "flex h-9 cursor-pointer items-center gap-2 rounded-none border-0 px-2",
+                "bg-transparent text-sm text-primary outline-none transition-colors duration-150",
+                "hover:bg-primary hover:text-primary-foreground",
+                "focus-visible:bg-primary focus-visible:text-primary-foreground",
+              )}
+            >
+              <Icons.arrowLeft className="size-4 shrink-0" strokeWidth={2} />
+              Zum Überblick
+            </button>
+            <div className="flex shrink-0 items-center gap-1">
+              {prevStage ? (
+                <button
+                  type="button"
+                  aria-label={`Etappe ${prevStage.nr} — vorherige`}
+                  onClick={() => goToStage(prevStage.nr)}
+                  className={cn(
+                    "flex size-9 cursor-pointer items-center justify-center rounded-none border-0",
+                    "bg-transparent text-primary outline-none transition-colors duration-150",
+                    "hover:bg-primary hover:text-primary-foreground",
+                    "focus-visible:bg-primary focus-visible:text-primary-foreground",
+                  )}
+                >
+                  <Icons.arrowLeft className="size-4" strokeWidth={2} />
+                </button>
+              ) : null}
+              {nextStage ? (
+                <button
+                  type="button"
+                  aria-label={`Etappe ${nextStage.nr} — nächste`}
+                  onClick={() => goToStage(nextStage.nr)}
+                  className={cn(
+                    "flex size-9 cursor-pointer items-center justify-center rounded-none border-0",
+                    "bg-transparent text-primary outline-none transition-colors duration-150",
+                    "hover:bg-primary hover:text-primary-foreground",
+                    "focus-visible:bg-primary focus-visible:text-primary-foreground",
+                  )}
+                >
+                  <Icons.arrowRight className="size-4" strokeWidth={2} />
+                </button>
+              ) : null}
+            </div>
+          </div>
         ) : undefined
       }
       map={
@@ -215,6 +274,7 @@ export function TripLayout() {
           fitBoundsTarget={fitBoundsTarget}
           introBounds={overviewBounds}
           fitEpoch={fitEpoch}
+          resizeEpoch={resizeEpoch}
           hoverPoint={hoverPoint}
           followPoint={followPoint}
           terrain3d={isStage}

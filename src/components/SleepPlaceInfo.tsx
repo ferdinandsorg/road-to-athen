@@ -23,9 +23,11 @@ export function SleepPlaceInfo({ sleep }: Props) {
       </p>
 
       <div className="flex gap-5">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-none bg-primary text-primary-foreground">
-          <Icon className="size-6" strokeWidth={2} aria-hidden />
-        </div>
+        <Icon
+          className="mt-1 size-5 shrink-0 text-primary"
+          strokeWidth={2.25}
+          aria-hidden
+        />
 
         <div className="min-w-0 flex-1 space-y-2">
           <div>

@@ -1,0 +1,53 @@
+# Deploy production site to IONOS via SFTP whenever `main` changes.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & SFTP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Check trip data
+        run: |
+          if [ ! -f public/data/stages.json ]; then
+            echo "::error::public/data/stages.json fehlt."
+            echo "Trip-Daten müssen im Repo liegen (public/data/), Medien bleiben auf dem Server (public/media/ ist gitignored)."
+            exit 1
+          fi
+
+      - name: Build
+        env:
+          VITE_USE_FIXTURES: "false"
+          VITE_MAPBOX_ACCESS_TOKEN: ${{ secrets.VITE_MAPBOX_ACCESS_TOKEN }}
+        run: npm run build
+
+      - name: Upload via SFTP
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_REMOTE_DIR: ${{ secrets.FTP_REMOTE_DIR }}
+          FTP_PORT: ${{ secrets.FTP_PORT || '22' }}
+          # Never wipe the server — media/ lives only there, not in git
+          FTP_CLEAN: "false"
+        run: npm run deploy:ftp

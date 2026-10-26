@@ -1,0 +1,930 @@
+[
+  {
+    "nr": 1,
+    "id": "20075170346",
+    "name": "Road to Athen 01 — Start",
+    "day": 1,
+    "startUtc": "2026-09-07T07:10:05.000Z",
+    "timeZone": "Europe/Berlin",
+    "distanceM": 116429.9,
+    "movingTimeS": 19873,
+    "elapsedTimeS": 28948,
+    "elevationGainM": 489.9,
+    "avgSpeedMs": 5.859,
+    "avgTempC": 19,
+    "bbox": [
+      12.328995857387781,
+      51.11642075702548,
+      13.558346712961793,
+      51.3652493711561
+    ],
+    "start": [
+      12.328995857387781,
+      51.340068792924285
+    ],
+    "end": [
+      13.558346712961793,
+      51.11643601208925
+    ],
+    "mediaCount": 6
+  },
+  {
+    "nr": 2,
+    "id": "20090184318",
+    "name": "Road to Athen 02 — First country unlocked",
+    "day": 2,
+    "startUtc": "2026-09-08T06:57:54.000Z",
+    "timeZone": "Europe/Berlin",
+    "distanceM": 117890.3,
+    "movingTimeS": 22491,
+    "elapsedTimeS": 33454,
+    "elevationGainM": 880,
+    "avgSpeedMs": 5.242,
+    "avgTempC": 28,
+    "bbox": [
+      13.558752061799169,
+      50.59553291648626,
+      14.421672597527504,
+      51.116229984909296
+    ],
+    "start": [
+      13.558752061799169,
+      51.116229984909296
+    ],
+    "end": [
+      14.395353337749839,
+      50.59587481431663
+    ],
+    "mediaCount": 10
+  },
+  {
+    "nr": 3,
+    "id": "20105047686",
+    "name": "Road to Athen 03 — Gravel and rain",
+    "day": 3,
+    "startUtc": "2026-09-09T07:09:41.000Z",
+    "timeZone": "Europe/Prague",
+    "distanceM": 120071.5,
+    "movingTimeS": 20827,
+    "elapsedTimeS": 32692,
+    "elevationGainM": 873.2,
+    "avgSpeedMs": 5.765,
+    "avgTempC": 19,
+    "bbox": [
+      14.395719543099403,
+      49.95214842259884,
+      15.2621269505471,
+      50.59620128944516
+    ],
+    "start": [
+      14.395719543099403,
+      50.59563827700913
+    ],
+    "end": [
+      15.26016709394753,
+      49.95439913123846
+    ],
+    "mediaCount": 9
+  },
+  {
+    "nr": 4,
+    "id": "20118714212",
+    "name": "Road to Athen 04 — Berg hoch, Berg runter",
+    "day": 4,
+    "startUtc": "2026-09-10T07:30:53.000Z",
+    "timeZone": "Europe/Prague",
+    "distanceM": 102018.8,
+    "movingTimeS": 19525,
+    "elapsedTimeS": 31102,
+    "elevationGainM": 1078,
+    "avgSpeedMs": 5.225,
+    "avgTempC": 16.3,
+    "bbox": [
+      15.260261557996273,
+      49.47843552567065,
+      16.090719988569617,
+      49.95457456447184
+    ],
+    "start": [
+      15.260261557996273,
+      49.95457456447184
+    ],
+    "end": [
+      16.089962013065815,
+      49.47872545570135
+    ],
+    "mediaCount": 7
+  },
+  {
+    "nr": 5,
+    "id": "20131261402",
+    "name": "Road to Athen 05 — Durch Regen und Emotionen",
+    "day": 5,
+    "startUtc": "2026-09-11T07:15:12.000Z",
+    "timeZone": "Europe/Prague",
+    "distanceM": 99638.4,
+    "movingTimeS": 17229,
+    "elapsedTimeS": 27845,
+    "elevationGainM": 902.1,
+    "avgSpeedMs": 5.783,
+    "avgTempC": 11,
+    "bbox": [
+      16.088405745103955,
+      48.84037395939231,
+      16.486366018652916,
+      49.478487242013216
+    ],
+    "start": [
+      16.09023928642273,
+      49.478487242013216
+    ],
+    "end": [
+      16.480218898504972,
+      48.84037395939231
+    ],
+    "mediaCount": 7
+  },
+  {
+    "nr": 6,
+    "id": "20146126774",
+    "name": "Road to Athen 06 — Einfach Wien",
+    "day": 6,
+    "startUtc": "2026-09-12T07:44:59.000Z",
+    "timeZone": "Europe/Prague",
+    "distanceM": 100297.3,
+    "movingTimeS": 18685,
+    "elapsedTimeS": 28432,
+    "elevationGainM": 792,
+    "avgSpeedMs": 5.368,
+    "avgTempC": 22,
+    "bbox": [
+      16.344602555036545,
+      48.1903385091573,
+      16.51344845071435,
+      48.839979004114866
+    ],
+    "start": [
+      16.48009409196675,
+      48.839979004114866
+    ],
+    "end": [
+      16.344602555036545,
+      48.195983888581395
+    ],
+    "mediaCount": 5
+  },
+  {
+    "nr": 7,
+    "id": "20172606400",
+    "name": "Road to Athen 07 — Erst Ferrari dann Traktor",
+    "day": 7,
+    "startUtc": "2026-09-14T07:18:49.000Z",
+    "timeZone": "Europe/Vienna",
+    "distanceM": 127098.6,
+    "movingTimeS": 21723,
+    "elapsedTimeS": 31932,
+    "elevationGainM": 580.2,
+    "avgSpeedMs": 5.851,
+    "avgTempC": 19.1,
+    "bbox": [
+      16.34498594328761,
+      47.34120938926935,
+      17.01429281383753,
+      48.19565967656672
+    ],
+    "start": [
+      16.34498594328761,
+      48.19565967656672
+    ],
+    "end": [
+      17.008117698132992,
+      47.34120938926935
+    ],
+    "mediaCount": 6
+  },
+  {
+    "nr": 8,
+    "id": "20185390078",
+    "name": "Road to Athen 08 — Mit Voltaren zum Balaton ballern",
+    "day": 8,
+    "startUtc": "2026-09-15T07:21:24.000Z",
+    "timeZone": "Europe/Budapest",
+    "distanceM": 88198.8,
+    "movingTimeS": 14448,
+    "elapsedTimeS": 23571,
+    "elevationGainM": 329.6,
+    "avgSpeedMs": 6.105,
+    "avgTempC": 27.3,
+    "bbox": [
+      17.00833705253899,
+      46.760157169774175,
+      17.28665546514094,
+      47.348216995596886
+    ],
+    "start": [
+      17.00833705253899,
+      47.341144597157836
+    ],
+    "end": [
+      17.28643175214529,
+      46.76535487174988
+    ],
+    "mediaCount": 3
+  },
+  {
+    "nr": 9,
+    "id": "20201771675",
+    "name": "Road to Athen 09 — Sand und Wind Surfen",
+    "day": 9,
+    "startUtc": "2026-09-16T06:58:07.000Z",
+    "timeZone": "Europe/Budapest",
+    "distanceM": 131503,
+    "movingTimeS": 23165,
+    "elapsedTimeS": 32733,
+    "elevationGainM": 312,
+    "avgSpeedMs": 5.677,
+    "avgTempC": 25,
+    "bbox": [
+      17.240875773131847,
+      45.90305325575173,
+      17.646261239424348,
+      46.76658634096384
+    ],
+    "start": [
+      17.285734210163355,
+      46.765132918953896
+    ],
+    "end": [
+      17.64056640677154,
+      45.90461363084614
+    ],
+    "mediaCount": 6
+  },
+  {
+    "nr": 10,
+    "id": "20214178789",
+    "name": "Road to Athen 10 — Zum Bewerbungsgespräch geflogen",
+    "day": 10,
+    "startUtc": "2026-09-17T06:56:05.000Z",
+    "timeZone": "Europe/Zagreb",
+    "distanceM": 114611.6,
+    "movingTimeS": 17422,
+    "elapsedTimeS": 24793,
+    "elevationGainM": 97.6,
+    "avgSpeedMs": 6.579,
+    "avgTempC": 27,
+    "bbox": [
+      17.63121346011758,
+      45.56102885864675,
+      18.67418465204537,
+      45.90468085370958
+    ],
+    "start": [
+      17.640106240287423,
+      45.904666939750314
+    ],
+    "end": [
+      18.67418465204537,
+      45.56102885864675
+    ],
+    "mediaCount": 15
+  },
+  {
+    "nr": 11,
+    "id": "20228677731",
+    "name": "Road to Athen 11 — Bewerbungsgespräch done",
+    "day": 11,
+    "startUtc": "2026-09-18T08:28:51.000Z",
+    "timeZone": "Europe/Zagreb",
+    "distanceM": 82934.2,
+    "movingTimeS": 13361,
+    "elapsedTimeS": 25357,
+    "elevationGainM": 93.1,
+    "avgSpeedMs": 6.207,
+    "avgTempC": 28.4,
+    "bbox": [
+      18.46275893971324,
+      45.05324939265847,
+      18.781511904671788,
+      45.5616894364357
+    ],
+    "start": [
+      18.683034935966134,
+      45.55522539652884
+    ],
+    "end": [
+      18.46412963233888,
+      45.06475447677076
+    ],
+    "mediaCount": 11
+  },
+  {
+    "nr": 12,
+    "id": "20242649209",
+    "name": "Road to Athen 12 — Yin and Yang, Rain and Sun",
+    "day": 12,
+    "startUtc": "2026-09-19T07:20:04.000Z",
+    "timeZone": "Europe/Zagreb",
+    "distanceM": 101729.3,
+    "movingTimeS": 16269,
+    "elapsedTimeS": 28671,
+    "elevationGainM": 402.1,
+    "avgSpeedMs": 6.253,
+    "avgTempC": 24.4,
+    "bbox": [
+      18.061912525445223,
+      44.48499030433595,
+      18.465494038537145,
+      45.07361599244177
+    ],
+    "start": [
+      18.463596375659108,
+      45.064624808728695
+    ],
+    "end": [
+      18.06905323639512,
+      44.487826991826296
+    ],
+    "mediaCount": 7
+  },
+  {
+    "nr": 13,
+    "id": "20257690101",
+    "name": "Road to Athen 13 — Jetzt geht’s los mit die Berge",
+    "day": 13,
+    "startUtc": "2026-09-20T07:13:52.000Z",
+    "timeZone": "Europe/Sarajevo",
+    "distanceM": 127317.5,
+    "movingTimeS": 23773,
+    "elapsedTimeS": 32176,
+    "elevationGainM": 1438.5,
+    "avgSpeedMs": 5.356,
+    "avgTempC": 26,
+    "bbox": [
+      17.87727185525,
+      43.86076767928898,
+      18.43039515428245,
+      44.487845096737146
+    ],
+    "start": [
+      18.069471661001444,
+      44.487845096737146
+    ],
+    "end": [
+      18.43039515428245,
+      43.863182086497545
+    ],
+    "mediaCount": 14
+  },
+  {
+    "nr": 14,
+    "id": "20282764487",
+    "name": "Road to Athen 14 — Zu viel Adrenalin",
+    "day": 14,
+    "startUtc": "2026-09-22T05:57:20.000Z",
+    "timeZone": "Europe/Sarajevo",
+    "distanceM": 101977,
+    "movingTimeS": 21183,
+    "elapsedTimeS": 32169,
+    "elevationGainM": 1792.7,
+    "avgSpeedMs": 4.814,
+    "avgTempC": 13,
+    "bbox": [
+      18.370233876630664,
+      43.37259507738054,
+      18.79683100618422,
+      43.86288427747786
+    ],
+    "start": [
+      18.430679887533188,
+      43.86288427747786
+    ],
+    "end": [
+      18.796436050906777,
+      43.37259507738054
+    ],
+    "mediaCount": 18
+  },
+  {
+    "nr": 15,
+    "id": "20297951710",
+    "name": "Road to Athen 15 — Hoch, Bären, kalt",
+    "day": 15,
+    "startUtc": "2026-09-23T06:51:46.000Z",
+    "timeZone": "Europe/Sarajevo",
+    "distanceM": 73648.8,
+    "movingTimeS": 20467,
+    "elapsedTimeS": 31097,
+    "elevationGainM": 2348.4,
+    "avgSpeedMs": 3.598,
+    "avgTempC": 10,
+    "bbox": [
+      18.7958805821836,
+      43.09080747887492,
+      19.10611342638731,
+      43.37234403938055
+    ],
+    "start": [
+      18.796745259314775,
+      43.37203214876354
+    ],
+    "end": [
+      19.10462270490825,
+      43.09495626948774
+    ],
+    "mediaCount": 15
+  },
+  {
+    "nr": 16,
+    "id": "20315509524",
+    "name": "Road to Athen 16.1 — Nur schön",
+    "day": 16,
+    "startUtc": "2026-09-24T07:35:36.000Z",
+    "timeZone": "Europe/Podgorica",
+    "distanceM": 74000.2,
+    "movingTimeS": 16443,
+    "elapsedTimeS": 26093,
+    "elevationGainM": 1271.8,
+    "avgSpeedMs": 4.5,
+    "avgTempC": 20.3,
+    "bbox": [
+      19.10498999990523,
+      42.82291213050485,
+      19.59044460207224,
+      43.113635843619704
+    ],
+    "start": [
+      19.10498999990523,
+      43.094833390787244
+    ],
+    "end": [
+      19.590330105274916,
+      42.83366393297911
+    ],
+    "mediaCount": 22
+  },
+  {
+    "nr": 17,
+    "id": "20315501700",
+    "name": "Road to Athen 16.2 — Schlafplatz wechsel",
+    "day": 16,
+    "startUtc": "2026-09-24T15:01:10.000Z",
+    "timeZone": "Europe/Podgorica",
+    "distanceM": 5027.8,
+    "movingTimeS": 2893,
+    "elapsedTimeS": 3493,
+    "elevationGainM": 459.6,
+    "avgSpeedMs": 1.738,
+    "avgTempC": 12,
+    "bbox": [
+      19.589864742010832,
+      42.82767489552498,
+      19.616844160482287,
+      42.843691036105156
+    ],
+    "start": [
+      19.59040453657508,
+      42.83386233262718
+    ],
+    "end": [
+      19.616844160482287,
+      42.84365465864539
+    ],
+    "mediaCount": 3
+  },
+  {
+    "nr": 18,
+    "id": "20338483086",
+    "name": "Road to Athen 17 — Einmal durchs Höllentor",
+    "day": 17,
+    "startUtc": "2026-09-25T07:26:53.000Z",
+    "timeZone": "Europe/Podgorica",
+    "distanceM": 98083.9,
+    "movingTimeS": 23969,
+    "elapsedTimeS": 33302,
+    "elevationGainM": 2154.1,
+    "avgSpeedMs": 4.092,
+    "avgTempC": 3,
+    "bbox": [
+      19.613370867446065,
+      42.69069288857281,
+      20.32883453182876,
+      42.86066816188395
+    ],
+    "start": [
+      19.615919133648276,
+      42.842917051166296
+    ],
+    "end": [
+      20.31999422237277,
+      42.69069314002991
+    ],
+    "mediaCount": 0
+  },
+  {
+    "nr": 19,
+    "id": "20353981690",
+    "name": "Road to Athen 18 — Umwege die sich lohnen und Sonne die gönnt",
+    "day": 18,
+    "startUtc": "2026-09-27T06:57:57.000Z",
+    "timeZone": "Europe/Belgrade",
+    "distanceM": 123423.4,
+    "movingTimeS": 21568,
+    "elapsedTimeS": 30092,
+    "elevationGainM": 904.5,
+    "avgSpeedMs": 5.723,
+    "avgTempC": 22.4,
+    "bbox": [
+      20.302050076425076,
+      42.35895157791674,
+      21.177652347832918,
+      42.69060135819018
+    ],
+    "start": [
+      20.319917695596814,
+      42.69060135819018
+    ],
+    "end": [
+      21.1699238140136,
+      42.35898971557617
+    ],
+    "mediaCount": 8
+  },
+  {
+    "nr": 20,
+    "id": "20365805014",
+    "name": "Road to Athen 19 — Ich liebe Berghoch (fr)",
+    "day": 19,
+    "startUtc": "2026-09-28T06:55:29.000Z",
+    "timeZone": "Europe/Belgrade",
+    "distanceM": 114855.5,
+    "movingTimeS": 23798,
+    "elapsedTimeS": 31910,
+    "elevationGainM": 1887.9,
+    "avgSpeedMs": 4.826,
+    "avgTempC": 20,
+    "bbox": [
+      20.735396649688482,
+      41.679096249863505,
+      21.205083718523383,
+      42.358886701986194
+    ],
+    "start": [
+      21.169719714671373,
+      42.358886701986194
+    ],
+    "end": [
+      20.73811138048768,
+      41.68056425638497
+    ],
+    "mediaCount": 16
+  },
+  {
+    "nr": 21,
+    "id": "20378459273",
+    "name": "Road to Athen 20 — Oh Ohrid, weiter ritt",
+    "day": 20,
+    "startUtc": "2026-09-29T07:46:50.000Z",
+    "timeZone": "Europe/Skopje",
+    "distanceM": 100029.9,
+    "movingTimeS": 15810,
+    "elapsedTimeS": 21557,
+    "elevationGainM": 658.6,
+    "avgSpeedMs": 6.327,
+    "avgTempC": 21.2,
+    "bbox": [
+      20.503219943493605,
+      41.16421085782349,
+      20.747657027095556,
+      41.72018811106682
+    ],
+    "start": [
+      20.7354717515409,
+      41.67993167415261
+    ],
+    "end": [
+      20.65115491859615,
+      41.16421085782349
+    ],
+    "mediaCount": 14
+  },
+  {
+    "nr": 22,
+    "id": "20407678707",
+    "name": "Road to Athen 21 — Ab jetzt nur noch Sonntagsetappen",
+    "day": 21,
+    "startUtc": "2026-10-01T08:18:31.000Z",
+    "timeZone": "Europe/Skopje",
+    "distanceM": 86378,
+    "movingTimeS": 12895,
+    "elapsedTimeS": 23258,
+    "elevationGainM": 710,
+    "avgSpeedMs": 6.699,
+    "avgTempC": 28,
+    "bbox": [
+      19.987440956756473,
+      41.04035189375281,
+      20.651674261316657,
+      41.18899346329272
+    ],
+    "start": [
+      20.651674261316657,
+      41.163768796250224
+    ],
+    "end": [
+      19.987574564293027,
+      41.04215811006725
+    ],
+    "mediaCount": 8
+  },
+  {
+    "nr": 23,
+    "id": "20421207259",
+    "name": "Road to Athen 22 — Zwischen Bundesstraße und Feldweg",
+    "day": 22,
+    "startUtc": "2026-10-02T06:49:53.000Z",
+    "timeZone": "Europe/Tirane",
+    "distanceM": 103119.2,
+    "movingTimeS": 17025,
+    "elapsedTimeS": 30100,
+    "elevationGainM": 621.8,
+    "avgSpeedMs": 6.057,
+    "avgTempC": 27,
+    "bbox": [
+      19.43104804493487,
+      40.46493533067405,
+      19.98921356163919,
+      41.041988376528025
+    ],
+    "start": [
+      19.987535504624248,
+      41.041988376528025
+    ],
+    "end": [
+      19.431483317166567,
+      40.50092085264623
+    ],
+    "mediaCount": 9
+  },
+  {
+    "nr": 24,
+    "id": "20434228788",
+    "name": "Road to Athen 23 — Küstenromantik und Tunnel die nicht befahren werden dürfen",
+    "day": 23,
+    "startUtc": "2026-10-03T08:01:09.000Z",
+    "timeZone": "Europe/Tirane",
+    "distanceM": 63054,
+    "movingTimeS": 12389,
+    "elapsedTimeS": 22161,
+    "elevationGainM": 1028.5,
+    "avgSpeedMs": 5.09,
+    "avgTempC": 28,
+    "bbox": [
+      19.430616963654757,
+      40.092205088585615,
+      19.756465880200267,
+      40.50121790729463
+    ],
+    "start": [
+      19.430616963654757,
+      40.50121790729463
+    ],
+    "end": [
+      19.756465880200267,
+      40.09247590787709
+    ],
+    "mediaCount": 10
+  },
+  {
+    "nr": 25,
+    "id": "20461584919",
+    "name": "Road to Athen 24 — Emotional roller coaster",
+    "day": 24,
+    "startUtc": "2026-10-05T07:42:43.000Z",
+    "timeZone": "Europe/Athens",
+    "distanceM": 110978.6,
+    "movingTimeS": 20155,
+    "elapsedTimeS": 28513,
+    "elevationGainM": 1457,
+    "avgSpeedMs": 5.506,
+    "avgTempC": 29.5,
+    "bbox": [
+      19.754156079143286,
+      39.51724324375391,
+      20.22296321578324,
+      40.09619143791497
+    ],
+    "start": [
+      19.75605013780296,
+      40.09223559871316
+    ],
+    "end": [
+      20.202941866591573,
+      39.51724626123905
+    ],
+    "mediaCount": 10
+  },
+  {
+    "nr": 26,
+    "id": "20475739570",
+    "name": "Road to Athen 25 — Sidequest Korfu",
+    "day": 25,
+    "startUtc": "2026-10-06T04:24:16.000Z",
+    "timeZone": "Europe/Athens",
+    "distanceM": 76622.8,
+    "movingTimeS": 15150,
+    "elapsedTimeS": 39088,
+    "elevationGainM": 955,
+    "avgSpeedMs": 5.058,
+    "avgTempC": 25.2,
+    "bbox": [
+      19.852490723133087,
+      39.41329197026789,
+      20.264052227139473,
+      39.62766643613577
+    ],
+    "start": [
+      20.20324512384832,
+      39.51728439889848
+    ],
+    "end": [
+      20.2396640740335,
+      39.47372054681182
+    ],
+    "mediaCount": 13
+  },
+  {
+    "nr": 27,
+    "id": "20488887562",
+    "name": "Road to Athen 26 — In good company",
+    "day": 26,
+    "startUtc": "2026-10-07T07:36:41.000Z",
+    "timeZone": "Europe/Athens",
+    "distanceM": 72439.1,
+    "movingTimeS": 13775,
+    "elapsedTimeS": 21337,
+    "elevationGainM": 818,
+    "avgSpeedMs": 5.259,
+    "avgTempC": 29.1,
+    "bbox": [
+      20.241107940673828,
+      39.08549275249243,
+      20.66864392720163,
+      39.47357939556241
+    ],
+    "start": [
+      20.241107940673828,
+      39.47357939556241
+    ],
+    "end": [
+      20.659643188118935,
+      39.090396920219064
+    ],
+    "mediaCount": 6
+  },
+  {
+    "nr": 28,
+    "id": "20503470740",
+    "name": "Road to Athen 27 — Beautiful Landscapes",
+    "day": 27,
+    "startUtc": "2026-10-08T07:59:23.000Z",
+    "timeZone": "Europe/Athens",
+    "distanceM": 70347.6,
+    "movingTimeS": 13168,
+    "elapsedTimeS": 24942,
+    "elevationGainM": 154,
+    "avgSpeedMs": 5.342,
+    "avgTempC": 25,
+    "bbox": [
+      20.65955107100308,
+      39.04150008223951,
+      21.118704099208117,
+      39.17927552014589
+    ],
+    "start": [
+      20.65955107100308,
+      39.09015635959804
+    ],
+    "end": [
+      21.10441974364221,
+      39.04769514687359
+    ],
+    "mediaCount": 11
+  },
+  {
+    "nr": 29,
+    "id": "20516564410",
+    "name": "Road to Athen 28 — Salt and Wind",
+    "day": 28,
+    "startUtc": "2026-10-09T07:28:23.000Z",
+    "timeZone": "Europe/Athens",
+    "distanceM": 103345.8,
+    "movingTimeS": 19304,
+    "elapsedTimeS": 28359,
+    "elevationGainM": 522.8,
+    "avgSpeedMs": 5.354,
+    "avgTempC": 30,
+    "bbox": [
+      21.1050074826926,
+      38.327239975333214,
+      21.429542116820812,
+      39.04767209663987
+    ],
+    "start": [
+      21.1050074826926,
+      39.04767209663987
+    ],
+    "end": [
+      21.418453194200993,
+      38.32730485126376
+    ],
+    "mediaCount": 9
+  },
+  {
+    "nr": 30,
+    "id": "20529871461",
+    "name": "Road to Athen 29 — Last 100k ride",
+    "day": 29,
+    "startUtc": "2026-10-10T06:10:32.000Z",
+    "timeZone": "Europe/Athens",
+    "distanceM": 105999.5,
+    "movingTimeS": 20241,
+    "elapsedTimeS": 32955,
+    "elevationGainM": 830,
+    "avgSpeedMs": 5.237,
+    "avgTempC": 26.3,
+    "bbox": [
+      21.418374991044402,
+      38.16296372562647,
+      22.33986214734614,
+      38.397544864565134
+    ],
+    "start": [
+      21.418374991044402,
+      38.32752990536392
+    ],
+    "end": [
+      22.33763314783573,
+      38.17353816702962
+    ],
+    "mediaCount": 12
+  },
+  {
+    "nr": 31,
+    "id": "20544227431",
+    "name": "Road to Athen 30 — Sleeping situation unclear",
+    "day": 30,
+    "startUtc": "2026-10-11T06:38:39.000Z",
+    "timeZone": "Europe/Athens",
+    "distanceM": 72571.1,
+    "movingTimeS": 14404,
+    "elapsedTimeS": 33005,
+    "elevationGainM": 295,
+    "avgSpeedMs": 5.038,
+    "avgTempC": 25,
+    "bbox": [
+      22.32880398631096,
+      37.923156721517444,
+      22.93669732287526,
+      38.17439270205796
+    ],
+    "start": [
+      22.336601251736283,
+      38.17251591011882
+    ],
+    "end": [
+      22.92811014689505,
+      37.93795011006296
+    ],
+    "mediaCount": 8
+  },
+  {
+    "nr": 32,
+    "id": "20556522258",
+    "name": "Road to Athen 31 — FINAL DESTINATION 🏁",
+    "day": 31,
+    "startUtc": "2026-10-12T05:47:46.000Z",
+    "timeZone": "Europe/Athens",
+    "distanceM": 86827.1,
+    "movingTimeS": 17304,
+    "elapsedTimeS": 37729,
+    "elevationGainM": 822.4,
+    "avgSpeedMs": 5.018,
+    "avgTempC": 26.5,
+    "bbox": [
+      22.927503548562527,
+      37.91741176508367,
+      23.737400081008673,
+      37.99380736425519
+    ],
+    "start": [
+      22.92773438617587,
+      37.938430812209845
+    ],
+    "end": [
+      23.73684980906546,
+      37.98569359816611
+    ],
+    "mediaCount": 21
+  }
+]

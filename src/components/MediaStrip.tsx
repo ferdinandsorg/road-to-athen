@@ -1,6 +1,5 @@
 import type { MediaItem } from "@/types/data"
 import { formatTime } from "@/lib/format"
-import { cn } from "@/lib/utils"
 
 type Props = {
   items: MediaItem[]
@@ -9,7 +8,7 @@ type Props = {
   onSelect: (item: MediaItem) => void
 }
 
-export function MediaStrip({ items, timeZone, activeId, onSelect }: Props) {
+export function MediaStrip({ items, timeZone, onSelect }: Props) {
   const sorted = [...items].sort(
     (a, b) => new Date(a.takenAt).getTime() - new Date(b.takenAt).getTime(),
   )
@@ -25,15 +24,12 @@ export function MediaStrip({ items, timeZone, activeId, onSelect }: Props) {
               <button
                 type="button"
                 onClick={() => onSelect(item)}
-                className={cn(
-                  "block size-16 overflow-hidden rounded-none border-2 border-transparent shadow-md transition-transform duration-150 hover:scale-110",
-                  activeId === item.id && "border-primary",
-                )}
+                className="group block size-16 cursor-pointer overflow-hidden rounded-none"
               >
                 <img
                   src={item.thumb}
                   alt={alt}
-                  className="size-full object-cover"
+                  className="size-full object-cover transition-transform duration-150 group-hover:scale-110"
                 />
               </button>
             </li>

@@ -40,7 +40,36 @@ npm run build
 npm run preview
 ```
 
-Ausgabe: `dist/`. SPA-Fallback ist für Netlify (`public/_redirects`) und Vercel (`vercel.json`) vorbereitet. Beliebiger Static Host möglich.
+Ausgabe: `dist/`. SPA-Fallback: Netlify (`public/_redirects`), Vercel (`vercel.json`), Apache/FTP (`public/.htaccess`).
+
+### Branches
+
+| Branch | Bedeutung |
+|---|---|
+| `main` | Live-Stand → wird bei jedem Push per SFTP auf die Website deployed |
+| `develop` | Arbeit / noch nicht fertig — kein Auto-Deploy |
+
+Workflow: auf `develop` bauen → Pull Request nach `main` → Merge → Website aktualisiert sich.
+
+### SFTP-Upload (IONOS / 1&1)
+
+IONOS hat klassisches FTP abgeschaltet — Upload läuft per **SFTP** (Port 22).
+
+**Lokal (z. B. erste Medien-Sync):**
+
+1. Zugangsdaten in `.env.local` (Vorlage: `.env.example`)
+2. `npm run build:data` dann `npm run deploy`
+
+**Automatisch von GitHub (`main`):**
+
+Repo → Settings → Secrets and variables → Actions — diese Secrets anlegen:
+
+- `FTP_HOST`, `FTP_USER`, `FTP_PASSWORD`
+- `FTP_REMOTE_DIR` (meist `/`)
+- `FTP_PORT` (`22`)
+- `VITE_MAPBOX_ACCESS_TOKEN` (falls die Karte Mapbox nutzt)
+
+`public/media/` liegt nicht im Git. Einmal lokal hochladen; CI überschreibt nur Build-Dateien und lässt vorhandene Medien auf dem Server.
 
 ## Design
 

@@ -53,6 +53,11 @@ type MapViewProps = {
   terrain3d?: boolean
   /** Bump to re-run fitBounds (e.g. after timeline scrub release). */
   fitEpoch?: number
+  /**
+   * Bump after sidebar open/close/resize settles.
+   * Map uses trackResize=false so layout animation does not resize every frame.
+   */
+  resizeEpoch?: number
   children?: React.ReactNode
   padding?: MapPadding
   /** Click a route line to open that stage (muted / overview). */
@@ -99,6 +104,10 @@ function FitBounds({
   enabled?: boolean
 }) {
   const { current: map } = useMap()
+  // Padding via ref: sidebar open/close must not re-trigger fitBounds (wobbly camera).
+  const paddingRef = useRef(padding)
+  paddingRef.current = padding
+
   useEffect(() => {
     if (!map || !bounds || suspended || !enabled) return
     const [minLng, minLat, maxLng, maxLat] = bounds
@@ -109,14 +118,19 @@ function FitBounds({
         [maxLng, maxLat],
       ],
       {
-        padding: padding ?? { top: 80, bottom: 80, left: 80, right: 80 },
+        padding: paddingRef.current ?? {
+          top: 80,
+          bottom: 80,
+          left: 80,
+          right: 80,
+        },
         duration: terrain3d ? 1200 : 1400,
         pitch: terrain3d ? mapTheme.stageCamera.pitch : 0,
         bearing: terrain3d ? mapTheme.stageCamera.bearing : 0,
         essential: true,
       },
     )
-  }, [map, bounds, padding, suspended, terrain3d, fitEpoch, enabled])
+  }, [map, bounds, suspended, terrain3d, fitEpoch, enabled])
   return null
 }
 
@@ -508,6 +522,7 @@ export function MapView({
   followPoint,
   terrain3d = false,
   fitEpoch = 0,
+  resizeEpoch = 0,
   children,
   padding,
   onStageSelect,
@@ -546,6 +561,21 @@ export function MapView({
     return () => {
       cancelled = true
     }
+  }, [])
+
+  // Manual resize only — avoids MapLibre thrashing during sidebar width CSS transition.
+  useEffect(() => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    map.resize()
+  }, [resizeEpoch])
+
+  useEffect(() => {
+    function onWinResize() {
+      mapRef.current?.getMap()?.resize()
+    }
+    window.addEventListener("resize", onWinResize)
+    return () => window.removeEventListener("resize", onWinResize)
   }, [])
 
   function setRouteCursor(cursor: string) {
@@ -673,6 +703,10 @@ export function MapView({
       mapStyle={mapStyle}
       initialViewState={GLOBE_INTRO_VIEW}
       style={{ width: "100%", height: "100%", background: "#0b1020" }}
+      trackResize={false}
+      onLoad={() => {
+        mapRef.current?.getMap()?.resize()
+      }}
       attributionControl={false}
       interactiveLayerIds={
         onStageSelect ? [...ROUTE_HIT_LAYERS] : undefined

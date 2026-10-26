@@ -23,6 +23,11 @@ type Props = {
   /** Controlled collapse; defaults to internal state when omitted. */
   collapsed?: boolean
   onCollapsedChange?: (collapsed: boolean) => void
+  /**
+   * Fired when sidebar width has settled (open/close transition end,
+   * or drag-resize end) so the map can resize once — not every frame.
+   */
+  onMapLayoutSettled?: () => void
 }
 
 const PANEL_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"
@@ -74,21 +79,24 @@ function BrandHeader({
           </p>
         ) : null}
       </div>
-      <Button
+      <button
         type="button"
-        variant="ghost"
-        size="icon"
         aria-label={collapsed ? "Sidebar öffnen" : "Sidebar einklappen"}
-        className={cn(
-          "size-9 shrink-0 rounded-none shadow-none",
-          collapsed
-            ? "border border-border bg-background text-primary hover:bg-background hover:text-primary"
-            : "border-0 bg-transparent text-primary hover:bg-transparent hover:text-primary",
-        )}
         onClick={onToggle}
+        className={cn(
+          "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-none border-0",
+          "text-primary outline-none transition-colors duration-150",
+          "hover:bg-primary hover:text-primary-foreground",
+          "focus-visible:bg-primary focus-visible:text-primary-foreground",
+          collapsed ? "bg-background" : "bg-transparent",
+        )}
       >
-        {collapsed ? <Icons.panelLeft /> : <Icons.panelLeftClose />}
-      </Button>
+        {collapsed ? (
+          <Icons.panelLeft className="size-4" strokeWidth={2} />
+        ) : (
+          <Icons.panelLeftClose className="size-4" strokeWidth={2} />
+        )}
+      </button>
     </div>
   )
 }
@@ -100,6 +108,7 @@ export function AppShell({
   timeline,
   collapsed: collapsedProp,
   onCollapsedChange,
+  onMapLayoutSettled,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [internalCollapsed, setInternalCollapsed] = useState(false)
@@ -108,6 +117,8 @@ export function AppShell({
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT)
   const [resizing, setResizing] = useState(false)
   const widthRef = useRef(sidebarWidth)
+  const settledRef = useRef(onMapLayoutSettled)
+  settledRef.current = onMapLayoutSettled
 
   useEffect(() => {
     setSidebarWidth(readStoredWidth())
@@ -116,6 +127,10 @@ export function AppShell({
   useEffect(() => {
     widthRef.current = sidebarWidth
   }, [sidebarWidth])
+
+  function notifyMapSettled() {
+    settledRef.current?.()
+  }
 
   function setCollapsed(next: boolean) {
     onCollapsedChange?.(next)
@@ -148,6 +163,8 @@ export function AppShell({
       } catch {
         /* ignore */
       }
+      // One map resize after drag — not every pointermove frame.
+      notifyMapSettled()
     }
 
     handle.addEventListener("pointermove", onMove)
@@ -170,6 +187,11 @@ export function AppShell({
             : `width ${PANEL_MS}ms ${PANEL_EASE}, border-color ${PANEL_MS}ms ${PANEL_EASE}`,
         }}
         aria-hidden={collapsed}
+        onTransitionEnd={(e) => {
+          if (e.target !== e.currentTarget) return
+          if (e.propertyName !== "width") return
+          notifyMapSettled()
+        }}
       >
         <div
           className="flex h-full w-full min-w-0 flex-col"
@@ -234,6 +256,7 @@ export function AppShell({
                 } catch {
                   /* ignore */
                 }
+                notifyMapSettled()
               } else if (e.key === "ArrowRight") {
                 e.preventDefault()
                 const next = clampSidebarWidth(sidebarWidth + step)
@@ -243,6 +266,7 @@ export function AppShell({
                 } catch {
                   /* ignore */
                 }
+                notifyMapSettled()
               }
             }}
           />

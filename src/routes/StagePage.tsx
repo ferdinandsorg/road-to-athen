@@ -25,6 +25,7 @@ export function StagePage() {
     setActiveMediaId,
     lightboxOpen,
     setLightboxOpen,
+    goToStage,
   } = useOutletContext<TripOutletContext>()
 
   const nr = activeNr
@@ -40,6 +41,33 @@ export function StagePage() {
     () => (nr != null ? media.filter((m) => m.stageNr === nr) : []),
     [media, nr],
   )
+
+  /** Next stage that has media — for lightbox “continue” on the last slide. */
+  const nextStageMedia = useMemo(() => {
+    if (nr == null) return null
+    const ordered = [...stages].sort((a, b) => a.nr - b.nr)
+    const i = ordered.findIndex((s) => s.nr === nr)
+    if (i < 0) return null
+    for (let j = i + 1; j < ordered.length; j++) {
+      const s = ordered[j]!
+      const stageItems = media
+        .filter((m) => m.stageNr === s.nr)
+        .sort(
+          (a, b) =>
+            new Date(a.takenAt).getTime() - new Date(b.takenAt).getTime(),
+        )
+      const first = stageItems[0]
+      if (first) return { nr: s.nr, firstId: first.id }
+    }
+    return null
+  }, [stages, media, nr])
+
+  function goNextStageInLightbox() {
+    if (!nextStageMedia) return
+    setActiveMediaId(nextStageMedia.firstId)
+    setLightboxOpen(true)
+    goToStage(nextStageMedia.nr)
+  }
 
   if (!stage || nr == null) {
     return <p className="text-destructive">Etappe nicht gefunden</p>
@@ -99,7 +127,10 @@ export function StagePage() {
         open={lightboxOpen}
         startId={activeMediaId}
         timeZone={stage.timeZone}
+        line={detail?.line}
+        bbox={stage.bbox}
         onOpenChange={setLightboxOpen}
+        onNextStage={nextStageMedia ? goNextStageInLightbox : undefined}
       />
     </>
   )
