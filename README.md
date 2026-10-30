@@ -67,7 +67,7 @@ Repo → Settings → Secrets and variables → Actions — diese Secrets anlege
 - `FTP_HOST`, `FTP_USER`, `FTP_PASSWORD`
 - `FTP_REMOTE_DIR` (meist `/`)
 - `FTP_PORT` (`22`)
-- `VITE_MAPBOX_ACCESS_TOKEN` (falls die Karte Mapbox nutzt)
+- `VITE_MAPBOX_ACCESS_TOKEN` (optional, aktuell ungenutzt — Karte läuft ohne Token)
 
 `public/media/` liegt nicht im Git. Einmal lokal hochladen; CI überschreibt nur Build-Dateien und lässt vorhandene Medien auf dem Server.
 

@@ -1,6 +1,6 @@
 ---
-description: Kartenaufbau mit MapLibre, OpenFreeMap-Grundkarte und Mapterhorn-Relief
-globs: src/features/map/**,src/lib/map-theme.ts
+description: Kartenaufbau mit MapLibre, schlanker RTA-Basemap und Mapterhorn-Relief
+globs: src/features/map/**,src/lib/map-theme.ts,src/lib/rta-basemap-style.ts
 alwaysApply: false
 ---
 
@@ -8,19 +8,20 @@ alwaysApply: false
 
 ## Quellen (kostenlos, kein API-Key)
 
-- Grundkarte (Priorität): Mapbox Studio „Outdoors“ aus `public/styles/outdoors-mapbox.json`
-  wenn `VITE_MAPBOX_ACCESS_TOKEN` gesetzt (`src/lib/mapbox-outdoors-style.ts` rewrites
-  `mapbox://` → API-URLs). Sonst Carto Voyager / OpenFreeMap Liberty.
-- Relief 3D: Mapterhorn als `raster-dem` (auch mit Outdoors-Style für `setTerrain`).
+- Grundkarte: eigener Minimal-Style `buildRtaBasemapStyle()` (`src/lib/rta-basemap-style.ts`)
+  auf OpenFreeMap OpenMapTiles — Land, Wasser, wichtige Straßen, Ländergrenzen.
+  Farben/3D in `src/lib/map-theme.ts` (neutral grau-beige, Route bleibt Brand-Blau).
+- Fallback bei Tile-Fehler: Carto Positron (`mapSources.baseStyleFallback`).
+- Relief: Mapterhorn als `raster-dem` + `rta-hillshade`; Etappe zusätzlich `setTerrain`.
   ```ts
   map.addSource("dem", { type: "raster-dem", url: "https://tiles.mapterhorn.com/tilejson.json",
                          encoding: "terrarium", tileSize: 512 });
   ```
-  Extra-Hillshade (`rta-hillshade`) nur ohne Outdoors-Style — Outdoors bringt eigenes Relief mit.
 - Wichtig: `encoding: "terrarium"` – ohne das sind die Höhenwerte stillschweigend falsch.
-- Attribution Mapbox/OSM bzw. Carto und Mapterhorn sichtbar lassen.
-- Etappenansicht: `map.setTerrain({ source: "dem", exaggeration })` + Pitch/Bearing aus
-  `mapTheme.stageCamera`. Überblick bleibt flach (kein Terrain, pitch 0).
+- Attribution OSM/OpenFreeMap und Mapterhorn sichtbar lassen.
+- Etappenansicht: `setTerrain` + Pitch/Bearing aus `mapTheme.stageCamera`, wenn
+  `useMapTerrainCapable()` true (auch Mobile). Überblick bleibt flach (kein Terrain, pitch 0).
+- Mobile: gleicher Style, `liteMode` (kein Globe-Intro, niedriger pixelRatio, `road-minor` aus).
 
 ## Layer-Reihenfolge (oben nach unten)
 
@@ -28,9 +29,9 @@ alwaysApply: false
 2. Start-/Ziel-/Etappenend-Punkte (`circle`-Layer + Symbol fürs Ziel)
 3. aktive Etappe: Linie `route` über Kontur `route-casing`
 4. übrige Etappen: `route-muted`
-5. Beschriftungen der Grundkarte
+5. Grenzen / Straßen der Grundkarte
 6. Hillshade
-7. Grundkarte
+7. Wasser / Background
 
 ## Verhalten
 

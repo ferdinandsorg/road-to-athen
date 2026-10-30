@@ -1,56 +1,62 @@
 // Map colors as hex – MapLibre does not understand oklch().
-// Must match tokens in src/index.css (see docs/DESIGN_SYSTEM.md).
+// Oriented on Mapbox Light v11 (Day) — cool near-white land, gray water.
 
 /**
  * Map look & feel.
- *
- * Basemap (priority):
- * 1. Mapbox Studio „Outdoors“ (`public/styles/outdoors-mapbox.json`)
- *    if `VITE_MAPBOX_ACCESS_TOKEN` is set — your exported style.
- * 2. Else Carto Voyager / OpenFreeMap fallbacks below.
- *
- * Route + 3D terrain settings always come from `mapTheme` here.
+ * Basemap mimics Mapbox Light 2D so brand route blue `#1f26f0` stays the accent.
  */
 export const mapTheme = {
-  /** Active stage line (also used for playhead / markers). */
+  /** Mapbox Light land ≈ hsl(220, 3%, 99%) */
+  land: "#fcfcfd",
+  /** Space around the globe (our choice — Light uses white fog; we keep space black). */
+  space: "#050508",
   route: "#1f26f0",
-  routeMuted: "rgba(31, 38, 240, 0.45)",
+  routeMuted: "rgba(31, 38, 240, 0.42)",
   routeCasing: "#ffffff",
   stageEnd: "#0a1a8c",
   finish: "#3d4cff",
   markerBorder: "#ffffff",
+  /** Mapbox Light water ≈ hsl(220, 1%, 86%) */
+  water: "#dbdbdc",
+  waterDepth: "#d0d0d2",
+  waterway: "#dbdbdc",
+  /** Quiet Light-style roads */
+  road: "#e8e8ea",
+  roadCasing: "#fcfcfd",
+  roadMajor: "#ffffff",
+  /** admin-0 ≈ hsl(220, 0%, 70%) / halo 87% */
+  countryBorder: "#b2b2b2",
+  countryBorderHalo: "#dedede",
+  /** Darker than Light’s 49% gray — HTML labels need more contrast on white land. */
+  labelCountry: "#3f4450",
+  labelCapital: "#4a5060",
+  labelCity: "#6a7080",
+  labelWater: "#7a8090",
+  labelHalo: "#ffffff",
+  /** Settlement marker (capital ring / city dot) */
+  placeMarker: "#5a6070",
   hillshade: {
-    shadow: "#1a2030",
-    highlight: "#f5f0e6",
-    accent: "#5a6a82",
-    /** Used only when Mapbox Outdoors is NOT active. */
-    exaggeration: 0.75,
+    shadow: "#b8bcc4",
+    highlight: "#ffffff",
+    accent: "#c5c8ce",
+    exaggeration: 0.22,
   },
-  /** 3D mesh height (stage view only, Mapterhorn DEM). Try 1.0–1.8. */
-  terrainExaggeration: 1.25,
-  /** Camera for stage 3D; overview stays pitch 0. */
+  terrainExaggeration: 0.9,
   stageCamera: {
-    pitch: 52,
-    bearing: 18,
+    pitch: 40,
+    bearing: 12,
   },
-  routeWidth: { active: 4, casing: 7, muted: 3 },
-  /**
-   * Basemap tweaks (Mapbox Outdoors + fallbacks).
-   * Applied after style load — keeps Studio export editable.
-   */
-  water: "#3a6f9c",
-  waterDepth: "#2f5f88",
-  /** Country (admin-0) borders */
-  countryBorder: "#4a5568",
-  countryBorderHalo: "rgba(255, 255, 255, 0.55)",
+  routeWidth: { active: 4.5, casing: 7.5, muted: 3 },
 } as const
 
 export const mapSources = {
-  /** Fallback if no Mapbox token */
-  baseStyle: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
-  baseStyleFallback: "https://tiles.openfreemap.org/styles/liberty",
+  openmaptilesUrl: "https://tiles.openfreemap.org/planet",
+  glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+  baseStyleFallback: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
   demTileJson: "https://tiles.mapterhorn.com/tilejson.json",
   demEncoding: "terrarium" as const,
   demAttribution:
     '<a href="https://mapterhorn.com/attribution" target="_blank">© Mapterhorn</a>',
+  osmAttribution:
+    '© <a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
 } as const

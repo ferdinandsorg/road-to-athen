@@ -6,6 +6,8 @@ import { StageTimeline } from "@/components/StageTimeline"
 import { MapView } from "@/features/map/MapView"
 import { MediaMarkers } from "@/features/map/MediaMarkers"
 import { SleepMarkers } from "@/features/map/SleepMarkers"
+import { useIsMobile } from "@/hooks/useIsMobile"
+import { useMapTerrainCapable } from "@/hooks/useMapTerrainCapable"
 import { useStageDetail, useTripData } from "@/hooks/useTripData"
 import { lineCoordinates } from "@/lib/geo-display"
 import { Icons } from "@/lib/icons"
@@ -44,6 +46,8 @@ export function TripLayout() {
 
   const { stages, overview, media, error, loading } = useTripData()
   const { detail } = useStageDetail(isStage ? activeNr : null)
+  const isMobile = useIsMobile()
+  const terrainCapable = useMapTerrainCapable()
 
   const [collapsed, setCollapsed] = useState(false)
   const [resizeEpoch, setResizeEpoch] = useState(0)
@@ -277,7 +281,9 @@ export function TripLayout() {
           resizeEpoch={resizeEpoch}
           hoverPoint={hoverPoint}
           followPoint={followPoint}
-          terrain3d={isStage}
+          // 3D on stage when the device can handle DEM mesh (incl. many phones).
+          terrain3d={isStage && terrainCapable}
+          liteMode={isMobile}
           padding={mapPadding}
           onStageSelect={goToStage}
           hideStageEnds

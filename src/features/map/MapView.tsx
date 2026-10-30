@@ -15,13 +15,15 @@ import type {
 import "maplibre-gl/dist/maplibre-gl.css"
 import { mapSources, mapTheme } from "@/lib/map-theme"
 import {
-  loadMapboxOutdoorsStyle,
-  mapboxTokenFromEnv,
-} from "@/lib/mapbox-outdoors-style"
+  buildRtaBasemapStyleFallback,
+  loadRtaBasemapStyle,
+  RTA_MOBILE_HIDDEN_LAYERS,
+} from "@/lib/rta-basemap-style"
 import {
   flattenFeatureCollection,
   flattenLineFeature,
 } from "@/lib/geo-display"
+import { PlaceLabels } from "@/features/map/PlaceLabels"
 
 export type MapPadding = {
   top: number
@@ -51,6 +53,11 @@ type MapViewProps = {
    * Overview stays flat (2D) with hillshade only.
    */
   terrain3d?: boolean
+  /**
+   * Phone / small screens: skip globe intro, cap pixel ratio, jumpTo on scrub
+   * (terrain3d should already be off — DEM mesh is the main GPU cost).
+   */
+  liteMode?: boolean
   /** Bump to re-run fitBounds (e.g. after timeline scrub release). */
   fitEpoch?: number
   /**
@@ -145,17 +152,21 @@ function GlobeProjection() {
     const apply = () => {
       try {
         m.setProjection({ type: "globe" })
-        // Soft atmosphere so the sphere reads against space
+        // Black space around the globe; faint blue rim only near the limb
         m.setSky({
+          "sky-color": mapTheme.space,
+          "horizon-color": "#1a2230",
+          "horizon-fog-blend": 0.6,
+          "sky-horizon-blend": 0.35,
           "atmosphere-blend": [
             "interpolate",
             ["linear"],
             ["zoom"],
             0,
-            1,
-            8,
-            0.4,
-            12,
+            0.55,
+            6,
+            0.25,
+            10,
             0,
           ],
         })
@@ -258,9 +269,12 @@ function GlobeIntro({
 function FollowPoint({
   point,
   zoom = 9,
+  instant = false,
 }: {
   point: [number, number] | null | undefined
   zoom?: number
+  /** Mobile scrub: jumpTo avoids stacking easeTo animations. */
+  instant?: boolean
 }) {
   const { current: map } = useMap()
   const rafRef = useRef<number | null>(null)
@@ -274,12 +288,16 @@ function FollowPoint({
       rafRef.current = null
       const next = pendingRef.current
       if (!next) return
-      map.easeTo({
-        center: next,
-        zoom,
-        duration: 180,
-        essential: true,
-      })
+      if (instant) {
+        map.jumpTo({ center: next, zoom })
+      } else {
+        map.easeTo({
+          center: next,
+          zoom,
+          duration: 180,
+          essential: true,
+        })
+      }
     })
     return () => {
       if (rafRef.current != null) {
@@ -287,7 +305,7 @@ function FollowPoint({
         rafRef.current = null
       }
     }
-  }, [map, point, zoom])
+  }, [map, point, zoom, instant])
 
   return null
 }
@@ -337,9 +355,11 @@ function Hillshade({ enabled }: { enabled: boolean }) {
         if (m.getLayer("rta-hillshade")) return
 
         const layers = m.getStyle().layers ?? []
+        // Under roads/borders/labels so relief reads as ground, not a veil.
         const beforeId =
-          layers.find((l) => l.type === "symbol")?.id ??
-          layers.find((l) => l.id.includes("label"))?.id
+          layers.find((l) => l.id.startsWith("road-"))?.id ??
+          layers.find((l) => l.id.startsWith("boundary_"))?.id ??
+          layers.find((l) => l.id.startsWith("label_"))?.id
 
         m.addLayer(
           {
@@ -374,84 +394,62 @@ function Hillshade({ enabled }: { enabled: boolean }) {
   return null
 }
 
-/**
- * Stronger country borders + darker water on whatever basemap is loaded.
- * Outdoors is also patched at adapt time; this covers Carto / Liberty fallbacks.
- */
-function BasemapTweaks() {
+/** Keep capital/city circles above DEM hillshade and under route markers. */
+function PromotePlaceMarkers() {
   const { current: map } = useMap()
 
   useEffect(() => {
     if (!map) return
     const m = map.getMap()
 
-    const setPaint = (id: string, prop: string, value: unknown) => {
-      try {
-        if (m.getLayer(id)) {
-          // Style-specific props; cast keeps MapLibre's strict paint keys happy
-          m.setPaintProperty(id, prop as never, value as never)
+    const promote = () => {
+      for (const id of [
+        "place_city_dot",
+        "place_capital_outer",
+        "place_capital_inner",
+      ]) {
+        try {
+          if (m.getLayer(id)) m.moveLayer(id)
+        } catch {
+          /* ignore */
         }
-      } catch {
-        /* layer missing or prop unsupported */
       }
     }
 
+    if (m.isStyleLoaded()) promote()
+    else m.once("load", promote)
+    m.on("style.load", promote)
+    const t = window.setTimeout(promote, 300)
+    return () => {
+      m.off("style.load", promote)
+      window.clearTimeout(t)
+    }
+  }, [map])
+
+  return null
+}
+
+/** Hide heavier basemap layers on mobile (same style, thinner). */
+function MobileBasemapDiet({ enabled }: { enabled: boolean }) {
+  const { current: map } = useMap()
+
+  useEffect(() => {
+    if (!map) return
+    const m = map.getMap()
+
     const apply = () => {
-      setPaint("water", "fill-color", mapTheme.water)
-      setPaint("water-shadow", "fill-color", mapTheme.waterDepth)
-      setPaint("waterway", "line-color", mapTheme.water)
-
-      // Country borders (Mapbox Outdoors ids)
-      setPaint("admin-0-boundary", "line-color", mapTheme.countryBorder)
-      setPaint("admin-0-boundary", "line-opacity", 0.95)
-      setPaint("admin-0-boundary", "line-dasharray", [1, 0])
-      setPaint("admin-0-boundary", "line-width", [
-        "interpolate",
-        ["linear"],
-        ["zoom"],
-        2,
-        0.9,
-        6,
-        1.4,
-        12,
-        2.6,
-      ])
-      setPaint("admin-0-boundary-bg", "line-color", mapTheme.countryBorderHalo)
-      setPaint("admin-0-boundary-bg", "line-blur", 0)
-      setPaint("admin-0-boundary-bg", "line-opacity", [
-        "interpolate",
-        ["linear"],
-        ["zoom"],
-        1,
-        0.35,
-        3,
-        0.7,
-        8,
-        0.85,
-      ])
-      setPaint("admin-0-boundary-bg", "line-width", [
-        "interpolate",
-        ["linear"],
-        ["zoom"],
-        2,
-        2.5,
-        6,
-        4,
-        12,
-        7,
-      ])
-      setPaint("admin-0-boundary-disputed", "line-color", mapTheme.countryBorder)
-
-      // Common Carto / OpenFreeMap layer names
-      for (const id of [
-        "boundary_country",
-        "boundary_country_outline",
-        "admin_country",
-        "country_boundary",
-      ]) {
-        setPaint(id, "line-color", mapTheme.countryBorder)
-        setPaint(id, "line-width", 1.5)
-        setPaint(id, "line-opacity", 0.9)
+      for (const id of RTA_MOBILE_HIDDEN_LAYERS) {
+        try {
+          if (m.getLayer(id)) {
+            m.setLayoutProperty(
+              id,
+              "visibility",
+              enabled ? "none" : "visible",
+            )
+          }
+        } catch {
+          /* ignore */
+        }
       }
     }
 
@@ -461,7 +459,7 @@ function BasemapTweaks() {
     return () => {
       m.off("style.load", apply)
     }
-  }, [map])
+  }, [map, enabled])
 
   return null
 }
@@ -521,6 +519,7 @@ export function MapView({
   hoverPoint,
   followPoint,
   terrain3d = false,
+  liteMode = false,
   fitEpoch = 0,
   resizeEpoch = 0,
   children,
@@ -529,34 +528,27 @@ export function MapView({
   hideStageEnds = false,
 }: MapViewProps) {
   const mapRef = useRef<MapRef>(null)
-  const [mapStyle, setMapStyle] = useState<string | StyleSpecification>(
-    mapSources.baseStyle,
+  const [mapStyle, setMapStyle] = useState<string | StyleSpecification>(() =>
+    buildRtaBasemapStyleFallback(),
   )
-  /** True when Mapbox Outdoors style is active (has own relief — skip DEM hillshade). */
-  const [outdoorsActive, setOutdoorsActive] = useState(false)
-  const [introComplete, setIntroComplete] = useState(false)
-  const usedFallback = useRef(false)
+  // Mobile: skip globe fly-in — go straight to the route.
+  const [introComplete, setIntroComplete] = useState(liteMode)
   const scrubbing = followPoint != null
   const globeIntroBounds = introBounds ?? fitBoundsTarget
 
   useEffect(() => {
-    const token = mapboxTokenFromEnv()
-    if (!token) {
-      console.info(
-        "[map] VITE_MAPBOX_ACCESS_TOKEN fehlt — Carto Voyager statt Mapbox Outdoors.",
-      )
-      return
-    }
+    if (liteMode) setIntroComplete(true)
+  }, [liteMode])
+
+  // Resolve real planet tile URLs so places source can keep maxzoom: 8 (overzoom).
+  useEffect(() => {
     let cancelled = false
-    loadMapboxOutdoorsStyle(token)
+    loadRtaBasemapStyle()
       .then((style) => {
-        if (cancelled) return
-        setMapStyle(style)
-        setOutdoorsActive(true)
-        usedFallback.current = false
+        if (!cancelled) setMapStyle(style)
       })
       .catch((err) => {
-        console.warn("[map] Mapbox Outdoors konnte nicht geladen werden:", err)
+        console.warn("[map] OpenFreeMap style load failed:", err)
       })
     return () => {
       cancelled = true
@@ -701,11 +693,37 @@ export function MapView({
     <Map
       ref={mapRef}
       mapStyle={mapStyle}
-      initialViewState={GLOBE_INTRO_VIEW}
-      style={{ width: "100%", height: "100%", background: "#0b1020" }}
+      // Use remote PBF glyphs only — local TinySDF often yields empty label boxes.
+      localIdeographFontFamily={false}
+      // Allow zooming out far enough to see black space around the globe.
+      // (MapLibre permits -2…24; 0 alone is often not enough on tall phones.)
+      minZoom={-1.5}
+      maxZoom={18}
+      initialViewState={
+        liteMode
+          ? { longitude: 15, latitude: 45, zoom: 4, pitch: 0, bearing: 0 }
+          : GLOBE_INTRO_VIEW
+      }
+      style={{ width: "100%", height: "100%", background: mapTheme.space }}
       trackResize={false}
+      // Fewer GPU fragments on phones (1–1.25× instead of 2–3× retina).
+      pixelRatio={
+        liteMode ? Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 1.25) : undefined
+      }
+      fadeDuration={liteMode ? 0 : undefined}
       onLoad={() => {
-        mapRef.current?.getMap()?.resize()
+        const m = mapRef.current?.getMap()
+        m?.resize()
+        if (liteMode && m) {
+          try {
+            m.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25))
+            // Re-assert after style load — some paths clamp minZoom back up.
+            m.setMinZoom(-1.5)
+            m.setProjection({ type: "globe" })
+          } catch {
+            /* ignore */
+          }
+        }
       }}
       attributionControl={false}
       interactiveLayerIds={
@@ -735,27 +753,31 @@ export function MapView({
           : undefined
       }
       onError={(e) => {
+        // Log only — never swap the whole style here. DEM/glyph/tile blips used
+        // to replace our basemap with Positron and kill custom labels.
         console.warn("Map style/tile error:", e.error?.message ?? e)
-        if (!usedFallback.current) {
-          usedFallback.current = true
-          setOutdoorsActive(false)
-          setMapStyle(mapSources.baseStyleFallback)
-        }
       }}
     >
       <AttributionControl compact position="bottom-right" />
-      <NavigationControl position="top-right" showCompass={!terrain3d} />
+      {/* Zoom +/- also on mobile — pinch often can't reach globe/space zoom. */}
+      <NavigationControl
+        position="top-right"
+        showCompass={!liteMode && !terrain3d}
+      />
+      {/* Globe is light enough with the minimal basemap — enable on mobile too. */}
       <GlobeProjection />
-      <BasemapTweaks />
-      {!introComplete && (
+      <MobileBasemapDiet enabled={liteMode} />
+      <PromotePlaceMarkers />
+      <PlaceLabels />
+      {!liteMode && !introComplete && (
         <GlobeIntro
           bounds={globeIntroBounds}
           padding={padding}
           onComplete={() => setIntroComplete(true)}
         />
       )}
-      {/* Outdoors already includes vector hillshade; DEM hillshade only as fallback look */}
-      <Hillshade enabled={!outdoorsActive} />
+      {/* Soft DEM hillshade on overview; stays under 3D mesh on stage. */}
+      <Hillshade enabled />
       <Terrain3d enabled={terrain3d} />
       <FitBounds
         bounds={fitBoundsTarget}
@@ -765,7 +787,11 @@ export function MapView({
         fitEpoch={fitEpoch}
         enabled={introComplete}
       />
-      <FollowPoint point={followPoint} zoom={terrain3d ? 10 : 9} />
+      <FollowPoint
+        point={followPoint}
+        zoom={terrain3d ? 10 : 9}
+        instant={liteMode}
+      />
 
       {overview2d && (
         <Source id="overview" type="geojson" data={overview2d}>

@@ -192,7 +192,7 @@ export function StageTimeline({
       role="group"
       aria-label="Reisetimeline"
     >
-      {/* ——— Mobile: scroll for days; drag the square thumb to scrub ——— */}
+      {/* ——— Mobile: scrollable scale; desktop-style playhead + invisible touch target ——— */}
       <div className="px-3 py-3 md:hidden">
         <div
           ref={mobileScrollRef}
@@ -201,19 +201,18 @@ export function StageTimeline({
           <div
             ref={mobileTrackRef}
             className="relative select-none"
-            style={{ width: mobileTrackWidth, height: 72 }}
+            style={{ width: mobileTrackWidth, height: 56 }}
             role="slider"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(progress * 100)}
             aria-label="Position auf der Route"
           >
-            <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 bg-border" />
+            <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
             <ActiveSegment
               spans={spans}
               totalM={totalM}
               activeStageNr={activeStageNr}
-              thick
             />
             <StageTicks
               spans={spans}
@@ -223,22 +222,12 @@ export function StageTimeline({
               onSelectStage={onSelectStage}
               size="lg"
             />
-            {/* Visual playhead + large touch thumb (scrub only here so scroll still works) */}
-            <div
-              className="pointer-events-none absolute top-0 bottom-0 w-px bg-primary"
-              style={{ left: `${progress * 100}%` }}
-              aria-hidden
-            >
-              <div className="absolute left-1/2 top-0 size-3 -translate-x-1/2 bg-primary" />
-              <div className="absolute left-1/2 bottom-0 size-3 -translate-x-1/2 bg-primary" />
-            </div>
+            <Playhead progress={progress} />
+            {/* Invisible fat hit area — scrub without a visible square pin */}
             <button
               type="button"
               aria-label="Position ziehen"
-              className={cn(
-                "absolute top-1/2 z-10 size-12 -translate-x-1/2 -translate-y-1/2 touch-none",
-                "cursor-ew-resize border-2 border-primary bg-background",
-              )}
+              className="absolute top-0 bottom-0 z-10 w-11 -translate-x-1/2 touch-none cursor-ew-resize border-0 bg-transparent"
               style={{ left: `${progress * 100}%` }}
               onPointerDown={mobileThumbScrub.onPointerDown}
               onPointerMove={mobileThumbScrub.onPointerMove}
@@ -248,7 +237,7 @@ export function StageTimeline({
           </div>
         </div>
         <p className="mt-1.5 text-[10px] text-muted-foreground">
-          Wischen: weitere Etappen · Quadrat ziehen: scrubben
+          Wischen: weitere Etappen · Playhead ziehen: scrubben
         </p>
         {metaRow}
       </div>
