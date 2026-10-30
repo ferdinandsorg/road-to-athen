@@ -9,6 +9,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer"
+import { useIsMobile } from "@/hooks/useIsMobile"
 import { Icons } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 
@@ -110,6 +111,7 @@ export function AppShell({
   onCollapsedChange,
   onMapLayoutSettled,
 }: Props) {
+  const isMobile = useIsMobile()
   const [open, setOpen] = useState(false)
   const [internalCollapsed, setInternalCollapsed] = useState(false)
   const collapsed = collapsedProp ?? internalCollapsed
@@ -119,6 +121,11 @@ export function AppShell({
   const widthRef = useRef(sidebarWidth)
   const settledRef = useRef(onMapLayoutSettled)
   settledRef.current = onMapLayoutSettled
+
+  // One panel tree only — desktop sidebar stays in the DOM when hidden via CSS
+  // and would otherwise double-mount StagePage (charts, fetches, lightbox).
+  const desktopPanel = isMobile ? null : panel
+  const mobilePanel = isMobile ? panel : null
 
   useEffect(() => {
     setSidebarWidth(readStoredWidth())
@@ -216,7 +223,7 @@ export function AppShell({
                   )}
                 >
                   <div className="box-border flex w-full min-w-0 flex-col gap-5 overflow-x-hidden px-4 py-5 md:gap-6 md:px-6 md:py-6">
-                    {panel}
+                    {desktopPanel}
                   </div>
                 </ScrollArea>
                 {sidebarFooter ? (
@@ -312,7 +319,7 @@ export function AppShell({
                   </DrawerTitle>
                 </DrawerHeader>
                 <div className="max-h-[70vh] overflow-y-auto px-4 pb-4">
-                  <div className="flex flex-col gap-6">{panel}</div>
+                  <div className="flex flex-col gap-6">{mobilePanel}</div>
                   {sidebarFooter ? (
                     <div className="mt-8 border-t pt-4">{sidebarFooter}</div>
                   ) : null}

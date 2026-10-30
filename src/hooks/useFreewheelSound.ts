@@ -6,11 +6,17 @@ const SOUND_URL = "/audio/freewheel.mp3"
 /** Minimum gap between plays so rapid scrub does not stack. */
 const MIN_INTERVAL_MS = 45
 
+type Options = {
+  /** When false, tick/unlock are no-ops (e.g. mobile — saves audio + main-thread work). */
+  enabled?: boolean
+}
+
 /**
  * Play one short click while scrubbing.
  * Unlocks on first user gesture; respects prefers-reduced-motion.
  */
-export function useFreewheelSound() {
+export function useFreewheelSound(opts?: Options) {
+  const enabled = opts?.enabled ?? true
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const unlockedRef = useRef(false)
   const lastTickRef = useRef(-1)
@@ -18,6 +24,11 @@ export function useFreewheelSound() {
   const reducedMotionRef = useRef(false)
 
   useEffect(() => {
+    if (!enabled) {
+      audioRef.current = null
+      return
+    }
+
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
     reducedMotionRef.current = mq.matches
     const onChange = () => {
@@ -35,9 +46,10 @@ export function useFreewheelSound() {
       audio.pause()
       audioRef.current = null
     }
-  }, [])
+  }, [enabled])
 
   const unlock = useCallback(() => {
+    if (!enabled) return
     if (unlockedRef.current) return
     const audio = audioRef.current
     if (!audio) return
@@ -51,7 +63,7 @@ export function useFreewheelSound() {
       .catch(() => {
         unlockedRef.current = false
       })
-  }, [])
+  }, [enabled])
 
   const reset = useCallback(() => {
     lastTickRef.current = -1
@@ -60,6 +72,7 @@ export function useFreewheelSound() {
   /** Call while scrubbing with a discrete tick index (e.g. floor(progress * steps)). */
   const tick = useCallback(
     (tickIndex: number) => {
+      if (!enabled) return
       if (reducedMotionRef.current) return
       if (document.hidden) return
       if (tickIndex === lastTickRef.current) return
@@ -76,7 +89,7 @@ export function useFreewheelSound() {
       audio.currentTime = 0
       void audio.play().catch(() => {})
     },
-    [unlock],
+    [enabled, unlock],
   )
 
   return { tick, reset, unlock }

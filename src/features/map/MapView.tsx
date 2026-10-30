@@ -100,6 +100,7 @@ function FitBounds({
   terrain3d,
   fitEpoch = 0,
   enabled = true,
+  liteMode = false,
 }: {
   bounds: [number, number, number, number] | null | undefined
   padding?: MapPadding
@@ -109,6 +110,8 @@ function FitBounds({
   fitEpoch?: number
   /** False while globe intro owns the camera. */
   enabled?: boolean
+  /** Mobile: skip long camera animation (instant fit). */
+  liteMode?: boolean
 }) {
   const { current: map } = useMap()
   // Padding via ref: sidebar open/close must not re-trigger fitBounds (wobbly camera).
@@ -131,13 +134,13 @@ function FitBounds({
           left: 80,
           right: 80,
         },
-        duration: terrain3d ? 1200 : 1400,
+        duration: liteMode ? 0 : terrain3d ? 1200 : 1400,
         pitch: terrain3d ? mapTheme.stageCamera.pitch : 0,
         bearing: terrain3d ? mapTheme.stageCamera.bearing : 0,
         essential: true,
       },
     )
-  }, [map, bounds, suspended, terrain3d, fitEpoch, enabled])
+  }, [map, bounds, suspended, terrain3d, fitEpoch, enabled, liteMode])
   return null
 }
 
@@ -767,8 +770,8 @@ export function MapView({
       {/* Globe is light enough with the minimal basemap — enable on mobile too. */}
       <GlobeProjection />
       <MobileBasemapDiet enabled={liteMode} />
-      <PromotePlaceMarkers />
-      <PlaceLabels />
+      {!liteMode && <PromotePlaceMarkers />}
+      <PlaceLabels maxLabels={liteMode ? 40 : 120} />
       {!liteMode && !introComplete && (
         <GlobeIntro
           bounds={globeIntroBounds}
@@ -776,16 +779,17 @@ export function MapView({
           onComplete={() => setIntroComplete(true)}
         />
       )}
-      {/* Soft DEM hillshade on overview; stays under 3D mesh on stage. */}
-      <Hillshade enabled />
-      <Terrain3d enabled={terrain3d} />
+      {/* DEM tiles are costly on phones — skip hillshade + terrain mesh in liteMode. */}
+      {!liteMode && <Hillshade enabled />}
+      {!liteMode && <Terrain3d enabled={terrain3d} />}
       <FitBounds
         bounds={fitBoundsTarget}
         padding={padding}
         suspended={scrubbing}
-        terrain3d={terrain3d}
+        terrain3d={terrain3d && !liteMode}
         fitEpoch={fitEpoch}
         enabled={introComplete}
+        liteMode={liteMode}
       />
       <FollowPoint
         point={followPoint}

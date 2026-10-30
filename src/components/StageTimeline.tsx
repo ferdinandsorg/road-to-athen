@@ -11,6 +11,7 @@ import {
 } from "@/lib/stage-labels"
 import { formatElevation, formatKm } from "@/lib/format"
 import { useFreewheelSound } from "@/hooks/useFreewheelSound"
+import { useIsMobile } from "@/hooks/useIsMobile"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -51,7 +52,9 @@ export function StageTimeline({
   const mobileScrollRef = useRef<HTMLDivElement>(null)
   const draggingRef = useRef(false)
   const [dragging, setDragging] = useState(false)
-  const { tick, reset, unlock } = useFreewheelSound()
+  const isMobile = useIsMobile()
+  // Freewheel audio is noticeable CPU/audio work on phones — desktop only.
+  const { tick, reset, unlock } = useFreewheelSound({ enabled: !isMobile })
 
   const labels = useMemo(() => buildStageDisplayLabels(stages), [stages])
   const { spans, totalM } = useMemo(() => buildStageSpans(stages), [stages])
@@ -186,7 +189,8 @@ export function StageTimeline({
   return (
     <div
       className={cn(
-        "w-full border bg-map-panel shadow-lg backdrop-blur",
+        // backdrop-blur over a live map is expensive on mobile GPUs.
+        "w-full border bg-map-panel shadow-lg md:backdrop-blur",
         className,
       )}
       role="group"

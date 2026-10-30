@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Outlet, useLocation, useMatch, useNavigate } from "react-router-dom"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AppShell } from "@/components/AppShell"
@@ -57,6 +57,43 @@ export function TripLayout() {
   const [fitEpoch, setFitEpoch] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null)
+
+  // Coalesce pointermove scrub into one React update per animation frame.
+  const scrubRafRef = useRef<number | null>(null)
+  const pendingScrubRef = useRef<number | null>(null)
+
+  function flushScrubProgress() {
+    scrubRafRef.current = null
+    const next = pendingScrubRef.current
+    if (next == null) return
+    setScrubProgress(next)
+  }
+
+  function onScrubThrottled(p: number) {
+    pendingScrubRef.current = p
+    if (scrubRafRef.current != null) return
+    scrubRafRef.current = requestAnimationFrame(flushScrubProgress)
+  }
+
+  function onScrubEndFlush(stageNr: number, p: number) {
+    if (scrubRafRef.current != null) {
+      cancelAnimationFrame(scrubRafRef.current)
+      scrubRafRef.current = null
+    }
+    pendingScrubRef.current = null
+    setPinnedProgress(p)
+    setScrubProgress(null)
+    setFitEpoch((e) => e + 1)
+    navigate(`/etappe/${stageNr}`, { state: { progress: p } })
+  }
+
+  useEffect(() => {
+    return () => {
+      if (scrubRafRef.current != null) {
+        cancelAnimationFrame(scrubRafRef.current)
+      }
+    }
+  }, [])
 
   const { spans, totalM } = useMemo(() => buildStageSpans(stages), [stages])
   const vertices = useMemo(() => buildRouteVertices(overview), [overview])
@@ -281,8 +318,8 @@ export function TripLayout() {
           resizeEpoch={resizeEpoch}
           hoverPoint={hoverPoint}
           followPoint={followPoint}
-          // 3D on stage when the device can handle DEM mesh (incl. many phones).
-          terrain3d={isStage && terrainCapable}
+          // 3D on stage when capable; liteMode (phones) skips DEM entirely in MapView.
+          terrain3d={isStage && terrainCapable && !isMobile}
           liteMode={isMobile}
           padding={mapPadding}
           onStageSelect={goToStage}
@@ -309,13 +346,8 @@ export function TripLayout() {
           stages={stages}
           progress={progress}
           activeStageNr={isStage ? activeNr : null}
-          onScrub={(p) => setScrubProgress(p)}
-          onScrubEnd={(stageNr, p) => {
-            setPinnedProgress(p)
-            setScrubProgress(null)
-            setFitEpoch((e) => e + 1)
-            navigate(`/etappe/${stageNr}`, { state: { progress: p } })
-          }}
+          onScrub={onScrubThrottled}
+          onScrubEnd={onScrubEndFlush}
           onSelectStage={goToStage}
         />
       }

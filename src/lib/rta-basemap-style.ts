@@ -302,7 +302,13 @@ export async function loadRtaBasemapStyle(): Promise<StyleSpecification> {
   return buildRtaBasemapStyle({ planetTiles })
 }
 
+/** Layers turned off in liteMode — fewer GPU draws, PlaceLabels cover names. */
 export const RTA_MOBILE_HIDDEN_LAYERS = [
   "road-minor",
+  "road-major-casing",
+  "waterway",
+  "boundary_country_halo",
   "place_city_dot",
+  "place_capital_outer",
+  "place_capital_inner",
 ] as const

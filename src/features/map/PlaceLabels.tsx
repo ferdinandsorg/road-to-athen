@@ -25,7 +25,14 @@ function placeName(props: GeoJSON.GeoJsonProperties): string | null {
  * HTML place labels (countries + capitals).
  * MapLibre GL symbol text was not painting despite loaded glyphs; Markers are reliable.
  */
-export function PlaceLabels({ enabled = true }: { enabled?: boolean }) {
+export function PlaceLabels({
+  enabled = true,
+  /** Cap HTML markers (mobile uses a lower budget). */
+  maxLabels = 120,
+}: {
+  enabled?: boolean
+  maxLabels?: number
+}) {
   const { current: mapRef } = useMap()
   const [labels, setLabels] = useState<PlaceLabel[]>([])
 
@@ -90,7 +97,7 @@ export function PlaceLabels({ enabled = true }: { enabled?: boolean }) {
               lat,
               kind: isCountry ? "country" : "capital",
             })
-            if (next.length >= 120) break
+            if (next.length >= maxLabels) break
           }
 
           // Prefer countries, then capitals — stable visual hierarchy
@@ -99,7 +106,7 @@ export function PlaceLabels({ enabled = true }: { enabled?: boolean }) {
             return a.name.localeCompare(b.name, "de")
           })
 
-          setLabels(next)
+          setLabels(next.slice(0, maxLabels))
         } catch {
           /* source not ready */
         }
@@ -120,7 +127,7 @@ export function PlaceLabels({ enabled = true }: { enabled?: boolean }) {
       map.off("sourcedata", collect)
       map.off("style.load", collect)
     }
-  }, [mapRef, enabled])
+  }, [mapRef, enabled, maxLabels])
 
   if (!enabled) return null
 

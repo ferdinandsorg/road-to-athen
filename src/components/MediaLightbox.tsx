@@ -14,6 +14,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel"
 import { LightboxRouteOverlay } from "@/components/LightboxRouteOverlay"
+import { useIsMobile } from "@/hooks/useIsMobile"
 import { Icons } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 import type { BBox } from "@/lib/geo-fit"
@@ -42,8 +43,15 @@ const CURSOR_NEXT = `url("data:image/svg+xml,${encodeURIComponent(
 
 type NavCursor = "prev" | "next" | "media"
 
+/** Mount active ± this many neighbors; others keep slot size with a thumb placeholder. */
+const LAZY_NEIGHBORS = 1
+
 function isVideoTarget(target: EventTarget | null): boolean {
   return target instanceof Element && Boolean(target.closest("video"))
+}
+
+function shouldMountSlide(slideIndex: number, activeIndex: number): boolean {
+  return Math.abs(slideIndex - activeIndex) <= LAZY_NEIGHBORS
 }
 
 export function MediaLightbox({
@@ -56,6 +64,7 @@ export function MediaLightbox({
   onOpenChange,
   onNextStage,
 }: Props) {
+  const isMobile = useIsMobile()
   const [api, setApi] = useState<CarouselApi>()
   const [canScrollPrev, setCanScrollPrev] = useState(false)
   const [canScrollNext, setCanScrollNext] = useState(false)
@@ -143,8 +152,9 @@ export function MediaLightbox({
     }
   }, [open, active?.id])
 
-  const cursorStyle =
-    navCursor === "media"
+  const cursorStyle = isMobile
+    ? "auto"
+    : navCursor === "media"
       ? "auto"
       : navCursor === "prev"
         ? canScrollPrev
@@ -155,6 +165,7 @@ export function MediaLightbox({
           : "default"
 
   function onNavPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (isMobile) return
     if (isVideoTarget(e.target)) {
       setNavCursor("media")
       return
@@ -204,34 +215,47 @@ export function MediaLightbox({
           onClick={onNavClick}
         >
           <CarouselContent className="-ml-0 h-full">
-            {sorted.map((item) => {
+            {sorted.map((item, slideIndex) => {
               const alt = `${item.type === "video" ? "Video" : "Foto"} Etappe ${item.stageNr}, ${formatTime(item.takenAt, timeZone)} Uhr`
+              const mount = shouldMountSlide(slideIndex, index)
               return (
                 <CarouselItem
                   key={item.id}
                   className="flex h-dvh basis-full items-center justify-center pl-0"
                 >
-                  {item.type === "video" && item.video ? (
-                    <video
-                      ref={(el) => {
-                        if (el) videoRefs.current.set(item.id, el)
-                        else videoRefs.current.delete(item.id)
-                      }}
-                      src={item.video}
-                      poster={item.medium}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      className="relative z-20 max-h-[90dvh] max-w-[min(100%,90vw)] object-contain"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <track kind="captions" />
-                    </video>
+                  {mount ? (
+                    item.type === "video" && item.video ? (
+                      <video
+                        ref={(el) => {
+                          if (el) videoRefs.current.set(item.id, el)
+                          else videoRefs.current.delete(item.id)
+                        }}
+                        src={item.video}
+                        poster={item.medium}
+                        controls
+                        playsInline
+                        preload={slideIndex === index ? "metadata" : "none"}
+                        className="relative z-20 max-h-[90dvh] max-w-[min(100%,90vw)] object-contain"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <track kind="captions" />
+                      </video>
+                    ) : (
+                      <img
+                        src={item.medium}
+                        alt={alt}
+                        loading={slideIndex === index ? "eager" : "lazy"}
+                        decoding="async"
+                        className="max-h-[90dvh] max-w-[min(100%,90vw)] object-contain"
+                        draggable={false}
+                      />
+                    )
                   ) : (
                     <img
-                      src={item.medium}
-                      alt={alt}
-                      className="max-h-[90dvh] max-w-[min(100%,90vw)] object-contain"
+                      src={item.thumb}
+                      alt=""
+                      aria-hidden
+                      className="max-h-[90dvh] max-w-[min(100%,90vw)] object-contain opacity-40"
                       draggable={false}
                     />
                   )}
