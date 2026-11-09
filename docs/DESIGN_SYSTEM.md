@@ -25,14 +25,17 @@ Figma-Referenz: Node `1:3` in der Design-Datei „Untitled“ / Road to Athen.
 
 ## Typografie
 
-| Zweck | Schrift | Tailwind |
+| Zweck | Schrift | Tailwind / Utility |
 |---|---|---|
 | Brand, Überschriften, UI | **Uncut Sans Variable** | `font-heading` / `font-sans` |
-| Zahlen | Uncut Sans + `tabular-nums` | `font-sans tabular-nums` |
+| Section-Labels (Etappe, Distanz, …) | Uncut Sans 12px uppercase | `section-label` |
+| Stat-Zahlen | Uncut Sans Bold | `stat-value` |
+| Mini-Metadaten (Timeline, Chart) | ~10px | `text-[10px]` |
+| Fließtext / Zusatz | 14px | `text-sm` |
 
 Lokal aus `src/assets/fonts/UncutSans-Variable.ttf` (Kopie von `design/fonts/`). Kein CDN.
 
-Brand: `font-weight: 700`, enges Tracking (wie Figma).
+Brand: `font-weight: 700`, enges Tracking (wie Figma). Section-Labels nicht mit `text-sm` mischen.
 
 ## Form und Raum
 

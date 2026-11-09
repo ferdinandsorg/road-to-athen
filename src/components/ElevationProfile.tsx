@@ -64,9 +64,7 @@ export function ElevationProfile({ profile, onHoverKm }: Props) {
 
   return (
     <div className="min-w-0 max-w-full">
-      <p className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
-        Höhenprofil
-      </p>
+      <p className="section-label mb-4">Höhenprofil</p>
       <ChartContainer
         config={chartConfig}
         className="aspect-[3/1] w-full min-w-0 max-w-full"

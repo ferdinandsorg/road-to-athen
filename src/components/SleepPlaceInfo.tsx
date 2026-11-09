@@ -15,12 +15,11 @@ export function SleepPlaceInfo({ sleep }: Props) {
   const kind = sleepKindLabel[sleep.kind]
   const nightsLabel =
     sleep.nights === 1 ? "1 Nacht" : `${sleep.nights} Nächte`
+  const showKind = kind !== sleep.label
 
   return (
     <div>
-      <p className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
-        Schlafplatz
-      </p>
+      <p className="section-label mb-4">Schlafplatz</p>
 
       <div className="flex gap-5">
         <Icon
@@ -31,14 +30,12 @@ export function SleepPlaceInfo({ sleep }: Props) {
 
         <div className="min-w-0 flex-1 space-y-2">
           <div>
-            <p className="text-lg font-semibold tracking-tight">
-              {kind}
-              <span className="font-normal text-muted-foreground">
-                {" "}
-                · {nightsLabel}
-              </span>
+            <p className="text-base font-semibold tracking-tight">
+              {sleep.label}
             </p>
-            <p className="mt-1 text-base text-foreground">{sleep.label}</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {showKind ? `${nightsLabel} · ${kind}` : nightsLabel}
+            </p>
           </div>
 
           {sleep.detail && (

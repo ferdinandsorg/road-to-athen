@@ -53,13 +53,11 @@ export function OverviewStats({ stages }: Props) {
       </div>
 
       <div>
-        <p className="mb-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Nächte
-        </p>
+        <p className="section-label mb-4">Nächte</p>
         <ul className="flex flex-col gap-3">
           {sleepItems.map(({ kind, label, value, Icon }) => (
             <li key={kind} className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <span className="section-label flex items-center gap-2">
                 <Icon
                   className="size-4 shrink-0 text-primary"
                   strokeWidth={2.25}

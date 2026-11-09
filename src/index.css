@@ -113,6 +113,16 @@
   color: var(--foreground);
 }
 
+/* Sidebar/section eyebrows — one size (12px), not mixed xs/sm */
+@utility section-label {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
 @theme inline {
   --font-sans: "Uncut Sans", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Uncut Sans", ui-sans-serif, system-ui, sans-serif;

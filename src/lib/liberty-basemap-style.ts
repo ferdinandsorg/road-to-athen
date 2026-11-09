@@ -62,12 +62,13 @@ function applySharpLabelHalos(style: StyleSpecification): void {
  * Keep OFM colors; thin labels/roads for orientation without village spam.
  */
 function applyLibertyDiet(style: StyleSpecification): void {
-  // Countries vanish after z9 in stock Liberty — desktop stage zoom looks empty.
+  // Countries vanish after z9 in stock Liberty — keep them through stage zoom.
+  // No opacity fade: interpolating text-opacity during flyTo reads as flicker.
   for (const id of ["label_country_1", "label_country_2", "label_country_3"]) {
     const layer = layerById(style, id)
     if (!layer) continue
     delete layer.maxzoom
-    setMaxZoom(layer, 13)
+    setMaxZoom(layer, 12)
     if (layer.type === "symbol") {
       layer.layout = {
         ...layer.layout,
@@ -81,23 +82,12 @@ function applyLibertyDiet(style: StyleSpecification): void {
           14,
           9,
           13,
-          12,
+          11,
           12,
         ],
       }
-      layer.paint = {
-        ...layer.paint,
-        "text-opacity": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          10,
-          1,
-          12,
-          0.7,
-          13,
-          0.35,
-        ],
+      if (layer.paint && "text-opacity" in layer.paint) {
+        delete layer.paint["text-opacity"]
       }
     }
   }
@@ -170,18 +160,6 @@ export function buildLibertyBasemapStyleFallback(): StyleSpecification {
       },
     ],
   }
-}
-
-export async function loadLibertyBasemapStyle(): Promise<StyleSpecification> {
-  const res = await fetch(mapSources.libertyStyleUrl)
-  if (!res.ok) {
-    throw new Error(`Liberty style failed: ${res.status}`)
-  }
-  const style = (await res.json()) as StyleSpecification
-  applyLibertyDiet(style)
-  applyUncutSansFonts(style)
-  applySharpLabelHalos(style)
-  return style
 }
 
 /**
@@ -273,3 +251,33 @@ export const LIBERTY_MOBILE_HIDDEN_LAYERS = [
   "poi_r1",
   "poi_transit",
 ] as const
+
+/**
+ * Layers applyLibertyDiet already sets to visibility:none.
+ * MobileBasemapDiet must not force these back to "visible" on desktop.
+ */
+export const LIBERTY_ALWAYS_HIDDEN_LAYERS = new Set([
+  "label_other",
+  "label_state",
+])
+
+function applyMobileLayerHides(style: StyleSpecification): void {
+  for (const id of LIBERTY_MOBILE_HIDDEN_LAYERS) {
+    hideLayer(layerById(style, id))
+  }
+}
+
+export async function loadLibertyBasemapStyle(options?: {
+  mobile?: boolean
+}): Promise<StyleSpecification> {
+  const res = await fetch(mapSources.libertyStyleUrl)
+  if (!res.ok) {
+    throw new Error(`Liberty style failed: ${res.status}`)
+  }
+  const style = (await res.json()) as StyleSpecification
+  applyLibertyDiet(style)
+  if (options?.mobile) applyMobileLayerHides(style)
+  applyUncutSansFonts(style)
+  applySharpLabelHalos(style)
+  return style
+}

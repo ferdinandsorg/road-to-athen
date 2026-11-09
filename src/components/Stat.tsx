@@ -7,9 +7,7 @@ type Props = {
 export function Stat({ label, value, unit }: Props) {
   return (
     <div className="min-w-0">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
+      <p className="section-label">{label}</p>
       <p className="stat-value mt-0.5">
         {value}
         {unit ? (

@@ -50,7 +50,7 @@ export function StagePage() {
   return (
     <>
       <header className="min-w-0">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="section-label">
           Etappe {stageDisplayLabel(stage, labels)}
           <span className="font-normal normal-case tracking-normal">
             {" "}
@@ -81,17 +81,17 @@ export function StagePage() {
         </Suspense>
       )}
 
-      <div>
-        <p className="mb-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Fotos & Videos
-        </p>
-        <MediaStrip
-          items={items}
-          timeZone={stage.timeZone}
-          activeId={activeMediaId}
-          onSelect={openMedia}
-        />
-      </div>
+      {items.length > 0 ? (
+        <div>
+          <p className="section-label mb-4">Fotos & Videos</p>
+          <MediaStrip
+            items={items}
+            timeZone={stage.timeZone}
+            activeId={activeMediaId}
+            onSelect={openMedia}
+          />
+        </div>
+      ) : null}
 
       {stageSleep && <SleepPlaceInfo sleep={stageSleep} />}
     </>

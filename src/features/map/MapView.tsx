@@ -19,6 +19,7 @@ import { Icons } from "@/lib/icons"
 import { mapSources, mapTheme } from "@/lib/map-theme"
 import {
   buildLibertyBasemapStyleFallback,
+  LIBERTY_ALWAYS_HIDDEN_LAYERS,
   LIBERTY_MOBILE_HIDDEN_LAYERS,
   loadLibertyBasemapStyle,
 } from "@/lib/liberty-basemap-style"
@@ -509,7 +510,11 @@ function Hillshade({ enabled }: { enabled: boolean }) {
   return null
 }
 
-/** Hide heavier Liberty layers on mobile (same style, thinner). */
+/**
+ * Hide heavier Liberty layers on mobile (same style, thinner).
+ * Never force "visible" on layers the style already hides — that caused
+ * towns/states to flash on after load on desktop.
+ */
 function MobileBasemapDiet({ enabled }: { enabled: boolean }) {
   const { current: map } = useMap()
 
@@ -520,12 +525,11 @@ function MobileBasemapDiet({ enabled }: { enabled: boolean }) {
     const apply = () => {
       for (const id of LIBERTY_MOBILE_HIDDEN_LAYERS) {
         try {
-          if (m.getLayer(id)) {
-            m.setLayoutProperty(
-              id,
-              "visibility",
-              enabled ? "none" : "visible",
-            )
+          if (!m.getLayer(id)) continue
+          if (enabled || LIBERTY_ALWAYS_HIDDEN_LAYERS.has(id)) {
+            m.setLayoutProperty(id, "visibility", "none")
+          } else {
+            m.setLayoutProperty(id, "visibility", "visible")
           }
         } catch {
           /* ignore */
@@ -615,9 +619,15 @@ export function MapView({
   const scrubbing = followPoint != null
   const globeIntroBounds = introBounds ?? fitBoundsTarget
 
+  // Capture first paint mode — don’t re-fetch the whole style on breakpoint
+  // changes (MobileBasemapDiet toggles layers instead).
+  const initialLiteMode = useRef(liteMode)
+
   useEffect(() => {
     let cancelled = false
-    loadLibertyBasemapStyle()
+    // Bake mobile layer diet into the style JSON so the first paint is correct
+    // (avoids towns/POIs flashing before MobileBasemapDiet runs).
+    loadLibertyBasemapStyle({ mobile: initialLiteMode.current })
       .then((style) => {
         if (!cancelled) setMapStyle(style)
       })
@@ -780,7 +790,8 @@ export function MapView({
       pixelRatio={
         liteMode ? Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 1.25) : undefined
       }
-      fadeDuration={liteMode ? 0 : undefined}
+      // Symbol cross-fade during zoom/flyTo reads as label flicker.
+      fadeDuration={0}
       onLoad={() => {
         const m = mapRef.current?.getMap()
         m?.resize()

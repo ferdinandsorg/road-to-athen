@@ -231,11 +231,11 @@ export function TimelineSheet({
             )}
             inert={!showContent ? true : undefined}
           >
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pt-5 pb-5">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-5 pb-5">
               <div className="flex flex-col gap-6">{children}</div>
             </div>
             {footer ? (
-              <div className="shrink-0 border-t border-border bg-map-panel px-6 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <div className="shrink-0 border-t border-border bg-map-panel px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                 {footer}
               </div>
             ) : (
