@@ -345,7 +345,7 @@ export function StageTimeline({
 
   const scrubHint =
     showScrubHint && showMobileHint ? (
-      <p className="mb-1.5 flex w-full justify-center py-1.5 text-[10px] leading-none text-muted-foreground md:hidden">
+      <p className="mb-1 flex w-full justify-center text-[10px] leading-none text-muted-foreground md:hidden">
         Timeline wischen um Etappen zu sehen
       </p>
     ) : null
@@ -643,10 +643,11 @@ function StageTicks({
             <button
               type="button"
               className={cn(
+                // Sit above the centered tick/playhead so digits don’t clip the line.
                 "absolute top-0 left-0 -translate-x-1/2 font-medium uppercase tracking-wider tabular-nums",
                 large
-                  ? "min-w-8 py-0.5 text-xs"
-                  : "text-[9px] sm:text-[10px]",
+                  ? "min-w-8 -translate-y-1.5 py-0.5 text-xs"
+                  : "-translate-y-1 text-[9px] sm:text-[10px]",
                 mark.active ? "text-primary" : "text-muted-foreground",
               )}
               onClick={(e) => {

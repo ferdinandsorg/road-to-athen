@@ -276,7 +276,7 @@ export function AppShell({
 
         {/* Collapsed desktop: sidebar toggle above the map “i”. */}
         {collapsed ? (
-          <div className="pointer-events-none absolute top-0 left-0 z-20 hidden p-4 md:block">
+          <div className="pointer-events-none absolute top-0 left-0 z-20 hidden p-4 pt-[max(1rem,env(safe-area-inset-top))] pl-[max(1rem,env(safe-area-inset-left))] md:block">
             <div className="pointer-events-auto w-max">
               <BrandHeader
                 collapsed
@@ -288,7 +288,7 @@ export function AppShell({
 
         {/* Mobile: edge-stage control (mirrors zoom chrome padding). */}
         {isMobile && mapTopLeft ? (
-          <div className="pointer-events-none absolute top-0 left-0 z-20 p-4 md:hidden">
+          <div className="pointer-events-none absolute top-0 left-0 z-20 p-4 pt-[max(1rem,env(safe-area-inset-top))] pl-[max(1rem,env(safe-area-inset-left))] md:hidden">
             <div className="pointer-events-auto">{mapTopLeft}</div>
           </div>
         ) : null}

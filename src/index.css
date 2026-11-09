@@ -165,13 +165,26 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /*
+   * iOS Safari: height 100% leaves white letterboxing above/below the map.
+   * 100dvh + overflow hidden fills the visual viewport; map paints edge-to-edge
+   * (viewport-fit=cover). Controls use safe-area insets separately.
+   */
   html,
   body,
   #root {
-    @apply h-full w-full m-0 p-0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    /* Match MapLibre canvas so residual chrome gaps aren’t stark white. */
+    background-color: #d8dde3;
+    @apply text-foreground font-sans antialiased;
   }
   h1,
   h2,
@@ -203,15 +216,19 @@
  * Desktop NavigationControl only (mobile uses AppShell-matched custom buttons).
  */
 .maplibregl-ctrl-top-right .maplibregl-ctrl {
-  margin: 1rem 1rem 0 0 !important;
+  margin: max(1rem, env(safe-area-inset-top, 0px))
+    max(1rem, env(safe-area-inset-right, 0px)) 0 0 !important;
 }
 .maplibregl-ctrl-top-left .maplibregl-ctrl {
-  margin: 1rem 0 0 1rem !important;
+  margin: max(1rem, env(safe-area-inset-top, 0px)) 0 0
+    max(1rem, env(safe-area-inset-left, 0px)) !important;
 }
 /* Desktop + collapsed sidebar: “i” sits under the size-9 panel toggle. */
 @media (min-width: 768px) {
   .map-chrome-collapsed .maplibregl-ctrl-top-left .maplibregl-ctrl-attrib {
-    margin-top: calc(1rem + 2.25rem + 0.5rem) !important;
+    margin-top: calc(
+      max(1rem, env(safe-area-inset-top, 0px)) + 2.25rem + 0.5rem
+    ) !important;
   }
 }
 .maplibregl-ctrl-group {

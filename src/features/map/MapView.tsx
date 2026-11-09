@@ -216,7 +216,7 @@ function MobileZoomButtons() {
   }
 
   return (
-    <div className="pointer-events-none absolute top-0 right-0 z-10 p-4 md:hidden">
+    <div className="pointer-events-none absolute top-0 right-0 z-10 p-4 pt-[max(1rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] md:hidden">
       <div className="pointer-events-auto flex flex-col overflow-hidden border border-border bg-background shadow-lg">
         <Button
           type="button"

@@ -187,7 +187,7 @@ export function TimelineSheet({
           onPointerCancel={onHandlePointerCancel}
         >
           <div
-            className="relative flex w-full items-center justify-center py-2"
+            className="relative flex w-full items-center justify-center py-1.5"
             aria-hidden
           >
             {/* Invisible hit target — visual grabber stays the same size. */}
@@ -217,7 +217,7 @@ export function TimelineSheet({
         >
           <div
             className={cn(
-              "shrink-0 border bg-map-panel px-3 py-3 shadow-lg",
+              "shrink-0 border bg-map-panel px-3 py-2.5 shadow-lg",
               showContent && "border-x-0 border-t-0 border-b-border shadow-none",
             )}
           >
