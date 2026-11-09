@@ -15,7 +15,6 @@ type Props = {
   header: ReactNode
   children: ReactNode
   footer?: ReactNode
-  hint?: ReactNode
 }
 
 function snapHeightPx(snap: TimelineSheetSnap, collapsedPx: number): number {
@@ -58,7 +57,6 @@ export function TimelineSheet({
   header,
   children,
   footer,
-  hint,
 }: Props) {
   const stackRef = useRef<HTMLDivElement>(null)
   const startRef = useRef<{
@@ -159,10 +157,6 @@ export function TimelineSheet({
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col md:hidden">
-      {!open && !dragging && hint ? (
-        <div className="pointer-events-auto w-full shrink-0 px-3">{hint}</div>
-      ) : null}
-
       <div
         ref={stackRef}
         className={cn(
@@ -193,9 +187,11 @@ export function TimelineSheet({
           onPointerCancel={onHandlePointerCancel}
         >
           <div
-            className="flex w-full items-center justify-center py-2"
+            className="relative flex w-full items-center justify-center py-2"
             aria-hidden
           >
+            {/* Invisible hit target — visual grabber stays the same size. */}
+            <span className="absolute inset-x-0 -top-3 -bottom-3" />
             <span className="h-1 w-8 bg-muted-foreground/40" />
           </div>
           <p className="sr-only">

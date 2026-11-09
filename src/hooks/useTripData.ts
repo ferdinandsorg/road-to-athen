@@ -7,7 +7,8 @@ import {
 } from "@/lib/data"
 import type { MediaItem, Stage, StageDetail } from "@/types/data"
 
-export function useTripData() {
+export function useTripData(options?: { loadMedia?: boolean }) {
+  const wantMedia = options?.loadMedia ?? false
   const [stages, setStages] = useState<Stage[]>([])
   const [overview, setOverview] = useState<GeoJSON.FeatureCollection | null>(
     null,
@@ -20,15 +21,11 @@ export function useTripData() {
     let cancelled = false
     ;(async () => {
       try {
-        const [s, o, m] = await Promise.all([
-          loadStages(),
-          loadOverview(),
-          loadMedia(),
-        ])
+        // Overview first — media.json is large and only needed on stage routes.
+        const [s, o] = await Promise.all([loadStages(), loadOverview()])
         if (cancelled) return
         setStages(s)
         setOverview(o)
-        setMedia(m)
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Laden fehlgeschlagen")
@@ -41,6 +38,21 @@ export function useTripData() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!wantMedia) return
+    let cancelled = false
+    loadMedia()
+      .then((m) => {
+        if (!cancelled) setMedia(m)
+      })
+      .catch(() => {
+        /* stage can still render without media index */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [wantMedia])
 
   return { stages, overview, media, error, loading }
 }

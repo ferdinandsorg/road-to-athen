@@ -205,6 +205,15 @@
 .maplibregl-ctrl-top-right .maplibregl-ctrl {
   margin: 1rem 1rem 0 0 !important;
 }
+.maplibregl-ctrl-top-left .maplibregl-ctrl {
+  margin: 1rem 0 0 1rem !important;
+}
+/* Desktop + collapsed sidebar: “i” sits under the size-9 panel toggle. */
+@media (min-width: 768px) {
+  .map-chrome-collapsed .maplibregl-ctrl-top-left .maplibregl-ctrl-attrib {
+    margin-top: calc(1rem + 2.25rem + 0.5rem) !important;
+  }
+}
 .maplibregl-ctrl-group {
   border: 1px solid var(--border) !important;
   border-radius: 0 !important;
@@ -240,4 +249,19 @@
 .maplibregl-ctrl-attrib,
 .maplibregl-ctrl-attrib.maplibregl-compact {
   border-radius: 0 !important;
+}
+/* Collapsed “i” chip (compact without compact-show). */
+.maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) {
+  width: 24px;
+  min-height: 24px;
+  padding: 0 !important;
+  overflow: hidden;
+  background-color: var(--background) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show {
+  background-color: var(--background) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-lg) !important;
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Raster favicons from public/favicon.svg (Figma).
- * Does NOT touch og-image.png — that asset is maintained separately.
+ * Does NOT touch public/og-leipzig-athen.jpg — that asset is maintained separately.
  *
  * Run: npm run build:social
  */

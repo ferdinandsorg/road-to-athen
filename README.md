@@ -77,7 +77,7 @@ Repo → Settings → Secrets and variables → Actions — diese Secrets anlege
 - Primärfarben: Blau `#1f26f0` + Weiß (Griechenland)
 - Schrift: Uncut Sans Variable (`design/fonts/` → `src/assets/fonts/`)
 - Kartenlabels: dieselben Schnitte als MapLibre-Glyphen in `public/fonts/` (bei Bedarf neu bauen: `npm run build:map-fonts`, braucht `fonttools` + `fontnik`)
-- Share-Bild / Favicons: `npm run build:social` → `public/og-image.png`, `apple-touch-icon.png`
+- Share-Bild / Favicons: `public/og-leipzig-athen.jpg` (manuell aus Figma), Favicons via `npm run build:social`
 - Radius: 0, großzügiges Spacing
 
 Siehe `docs/DESIGN_SYSTEM.md` und `docs/PLAN.md`.

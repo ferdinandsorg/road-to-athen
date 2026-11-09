@@ -9,9 +9,19 @@ const MediaLightbox = lazy(() =>
     default: m.MediaLightbox,
   })),
 )
-import { MapView } from "@/features/map/MapView"
-import { MediaMarkers } from "@/features/map/MediaMarkers"
-import { SleepMarkers } from "@/features/map/SleepMarkers"
+const MapView = lazy(() =>
+  import("@/features/map/MapView").then((m) => ({ default: m.MapView })),
+)
+const MediaMarkers = lazy(() =>
+  import("@/features/map/MediaMarkers").then((m) => ({
+    default: m.MediaMarkers,
+  })),
+)
+const SleepMarkers = lazy(() =>
+  import("@/features/map/SleepMarkers").then((m) => ({
+    default: m.SleepMarkers,
+  })),
+)
 import { useIsMobile } from "@/hooks/useIsMobile"
 import { useMapTerrainCapable } from "@/hooks/useMapTerrainCapable"
 import { useStageDetail, useTripData } from "@/hooks/useTripData"
@@ -47,7 +57,9 @@ export function TripLayout() {
   const activeNr = stageMatch ? Number(stageMatch.params.nr) : null
   const isStage = activeNr != null && Number.isFinite(activeNr)
 
-  const { stages, overview, media, error, loading } = useTripData()
+  const { stages, overview, media, error, loading } = useTripData({
+    loadMedia: isStage,
+  })
   const { detail } = useStageDetail(isStage ? activeNr : null)
   const isMobile = useIsMobile()
   const terrainCapable = useMapTerrainCapable()
@@ -292,7 +304,6 @@ export function TripLayout() {
         collapsed={collapsed}
         onCollapsedChange={setCollapsed}
         onMapLayoutSettled={() => setResizeEpoch((n) => n + 1)}
-        showSheetHint={isStage}
         mapTopLeft={
           isStage && (prevStage == null || nextStage == null) ? (
             <button
@@ -362,37 +373,49 @@ export function TripLayout() {
           ) : undefined
         }
         map={
-          <MapView
-            overview={overview}
-            activeStageNr={isStage ? activeNr : null}
-            detailLine={isStage ? (detail?.line ?? null) : null}
-            fitBoundsTarget={fitBoundsTarget}
-            introBounds={overviewBounds}
-            fitEpoch={fitEpoch}
-            resizeEpoch={resizeEpoch}
-            hoverPoint={hoverPoint}
-            followPoint={followPoint}
-            // 3D on stage when capable; liteMode (phones) skips DEM entirely in MapView.
-            terrain3d={isStage && terrainCapable && !isMobile}
-            liteMode={isMobile}
-            padding={mapPadding}
-            onStageSelect={goToStage}
-            hideStageEnds
-          >
-            <SleepMarkers
-              stages={stages}
-              size={isStage ? "md" : "sm"}
-              activeStageNr={isStage ? activeNr : null}
-              onSelectStage={goToStage}
-            />
-            {isStage && (
-              <MediaMarkers
-                items={stageMedia}
-                activeId={activeMediaId}
-                onSelect={openMedia}
+          <Suspense
+            fallback={
+              <div
+                className="h-full w-full"
+                style={{ background: "#050508" }}
+                aria-hidden
               />
-            )}
-          </MapView>
+            }
+          >
+            <MapView
+              overview={overview}
+              activeStageNr={isStage ? activeNr : null}
+              detailLine={isStage ? (detail?.line ?? null) : null}
+              fitBoundsTarget={fitBoundsTarget}
+              introBounds={overviewBounds}
+              fitEpoch={fitEpoch}
+              resizeEpoch={resizeEpoch}
+              hoverPoint={hoverPoint}
+              followPoint={followPoint}
+              // 3D on stage when capable; liteMode (phones) skips DEM entirely.
+              terrain3d={isStage && terrainCapable && !isMobile}
+              liteMode={isMobile}
+              padding={mapPadding}
+              onStageSelect={goToStage}
+              hideStageEnds
+            >
+              <Suspense fallback={null}>
+                <SleepMarkers
+                  stages={stages}
+                  size={isStage ? "md" : "sm"}
+                  activeStageNr={isStage ? activeNr : null}
+                  onSelectStage={goToStage}
+                />
+                {isStage && (
+                  <MediaMarkers
+                    items={stageMedia}
+                    activeId={activeMediaId}
+                    onSelect={openMedia}
+                  />
+                )}
+              </Suspense>
+            </MapView>
+          </Suspense>
         }
         panel={<Outlet context={outletContext} />}
         timeline={

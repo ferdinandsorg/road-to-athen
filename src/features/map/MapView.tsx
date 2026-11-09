@@ -12,6 +12,8 @@ import type {
   Map as MaplibreMap,
   StyleSpecification,
 } from "maplibre-gl"
+import "@/lib/maplibre-worker"
+import "maplibre-gl/dist/maplibre-gl.css"
 import { Button } from "@/components/ui/button"
 import { Icons } from "@/lib/icons"
 import { mapSources, mapTheme } from "@/lib/map-theme"
@@ -141,6 +143,62 @@ function FitBounds({
       },
     )
   }, [map, bounds, suspended, terrain3d, fitEpoch, enabled, liteMode])
+  return null
+}
+
+/**
+ * MapLibre’s compact AttributionControl starts expanded (compact-show),
+ * and may re-apply that when sources finish loading. Keep the “i” chip
+ * until the user explicitly toggles attribution open.
+ */
+function KeepAttributionCollapsed() {
+  const { current: mapRef } = useMap()
+
+  useEffect(() => {
+    const map = mapRef?.getMap()
+    if (!map) return
+
+    const root = map.getContainer()
+    let userExpanded = false
+
+    const collapse = () => {
+      if (userExpanded) return
+      const el = root.querySelector("details.maplibregl-ctrl-attrib")
+      if (!(el instanceof HTMLDetailsElement)) return
+      if (!el.classList.contains("maplibregl-compact-show")) return
+      el.classList.remove("maplibregl-compact-show")
+      // MapLibre: open + no compact-show = collapsed “i” chip.
+      el.open = true
+    }
+
+    const onAttribClick = (event: Event) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (!target.closest(".maplibregl-ctrl-attrib-button")) return
+      requestAnimationFrame(() => {
+        const el = root.querySelector("details.maplibregl-ctrl-attrib")
+        userExpanded = Boolean(
+          el?.classList.contains("maplibregl-compact-show"),
+        )
+      })
+    }
+
+    collapse()
+    const frame = requestAnimationFrame(collapse)
+    root.addEventListener("click", onAttribClick)
+    map.on("sourcedata", collapse)
+    map.on("styledata", collapse)
+    map.on("idle", collapse)
+
+    return () => {
+      cancelAnimationFrame(frame)
+      root.removeEventListener("click", onAttribClick)
+      map.off("sourcedata", collapse)
+      map.off("styledata", collapse)
+      map.off("idle", collapse)
+    }
+  }, [mapRef])
+
   return null
 }
 
@@ -770,7 +828,9 @@ export function MapView({
         console.warn("Map style/tile error:", e.error?.message ?? e)
       }}
     >
-      <AttributionControl compact position="bottom-right" />
+      {/* Compact “i” only — OSM/OFM attribution is required, not removable. */}
+      <AttributionControl compact position="top-left" />
+      <KeepAttributionCollapsed />
       {/* Mobile: custom zoom in same p-4 chrome as burger. Desktop: MapLibre ctrl. */}
       {liteMode ? (
         <MobileZoomButtons />

@@ -52,6 +52,21 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      // Don't modulepreload heavy async chunks on first paint (Lighthouse).
+      modulePreload: {
+        resolveDependencies(_filename, deps) {
+          return deps.filter(
+            (dep) =>
+              !dep.includes("maplibre") &&
+              !dep.includes("recharts") &&
+              !dep.includes("carousel") &&
+              !dep.includes("MediaLightbox") &&
+              !dep.includes("ElevationProfile") &&
+              !dep.includes("StagePage") &&
+              !dep.includes("MapView"),
+          )
+        },
+      },
       rollupOptions: {
         output: {
           manualChunks(id) {

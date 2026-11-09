@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { SheetHint } from "@/components/SheetHint"
 import {
   TimelineSheet,
   type TimelineSheetSnap,
@@ -22,11 +21,6 @@ type Props = {
    * Mobile map chrome (top-left), e.g. “Zur Übersicht” at the first/last stage.
    */
   mapTopLeft?: React.ReactNode
-  /**
-   * When true on mobile (stage route), show a one-shot hint above the timeline
-   * that details live in the bottom sheet — until the sheet opens once.
-   */
-  showSheetHint?: boolean
   /** Controlled collapse; defaults to internal state when omitted. */
   collapsed?: boolean
   onCollapsedChange?: (collapsed: boolean) => void
@@ -35,24 +29,6 @@ type Props = {
    * or drag-resize end) so the map can resize once — not every frame.
    */
   onMapLayoutSettled?: () => void
-}
-
-const SHEET_HINT_KEY = "rta-sheet-hint-dismissed"
-
-function readSheetHintDismissed(): boolean {
-  try {
-    return sessionStorage.getItem(SHEET_HINT_KEY) === "1"
-  } catch {
-    return false
-  }
-}
-
-function persistSheetHintDismissed() {
-  try {
-    sessionStorage.setItem(SHEET_HINT_KEY, "1")
-  } catch {
-    /* ignore */
-  }
 }
 
 const PANEL_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"
@@ -85,43 +61,43 @@ function BrandHeader({
   collapsed: boolean
   onToggle: () => void
 }) {
-  return (
-    <div
+  const toggle = (
+    <button
+      type="button"
+      aria-label={collapsed ? "Sidebar öffnen" : "Sidebar einklappen"}
+      onClick={onToggle}
       className={cn(
-        "flex",
-        collapsed ? "w-max items-center gap-2" : "items-start gap-3",
+        "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-none border-0",
+        "text-primary outline-none transition-colors duration-150",
+        "hover:bg-primary hover:text-primary-foreground",
+        "focus-visible:bg-primary focus-visible:text-primary-foreground",
+        collapsed ? "border border-border bg-background shadow-lg" : "bg-transparent",
       )}
     >
-      <div className={cn(collapsed ? "w-max" : "min-w-0 flex-1")}>
+      {collapsed ? (
+        <Icons.panelLeft className="size-4" strokeWidth={2} />
+      ) : (
+        <Icons.panelLeftClose className="size-4" strokeWidth={2} />
+      )}
+    </button>
+  )
+
+  // Collapsed over the map: icon only — title lives in the open sidebar.
+  if (collapsed) return toggle
+
+  return (
+    <div className="flex items-start gap-3">
+      <div className="min-w-0 flex-1">
         <Link to="/">
           <h1 className="font-heading text-2xl font-bold tracking-tight text-primary md:text-3xl">
             Road to Athen
           </h1>
         </Link>
-        {!collapsed ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            Mit dem Fahrrad von Leipzig nach Athen
-          </p>
-        ) : null}
+        <p className="mt-2 text-sm text-muted-foreground">
+          Mit dem Fahrrad von Leipzig nach Athen
+        </p>
       </div>
-      <button
-        type="button"
-        aria-label={collapsed ? "Sidebar öffnen" : "Sidebar einklappen"}
-        onClick={onToggle}
-        className={cn(
-          "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-none border-0",
-          "text-primary outline-none transition-colors duration-150",
-          "hover:bg-primary hover:text-primary-foreground",
-          "focus-visible:bg-primary focus-visible:text-primary-foreground",
-          collapsed ? "bg-background" : "bg-transparent",
-        )}
-      >
-        {collapsed ? (
-          <Icons.panelLeft className="size-4" strokeWidth={2} />
-        ) : (
-          <Icons.panelLeftClose className="size-4" strokeWidth={2} />
-        )}
-      </button>
+      {toggle}
     </div>
   )
 }
@@ -132,7 +108,6 @@ export function AppShell({
   sidebarFooter,
   timeline,
   mapTopLeft,
-  showSheetHint = false,
   collapsed: collapsedProp,
   onCollapsedChange,
   onMapLayoutSettled,
@@ -140,9 +115,6 @@ export function AppShell({
   const isMobile = useIsMobile()
   const [sheetSnap, setSheetSnap] =
     useState<TimelineSheetSnap>("collapsed")
-  const [sheetHintDismissed, setSheetHintDismissed] = useState(
-    readSheetHintDismissed,
-  )
   const [internalCollapsed, setInternalCollapsed] = useState(false)
   const collapsed = collapsedProp ?? internalCollapsed
 
@@ -157,26 +129,8 @@ export function AppShell({
   const desktopPanel = isMobile ? null : panel
   const mobilePanel = isMobile ? panel : null
 
-  const sheetHintVisible =
-    isMobile &&
-    showSheetHint &&
-    !sheetHintDismissed &&
-    sheetSnap === "collapsed"
-
-  function dismissSheetHint() {
-    setSheetHintDismissed(true)
-    persistSheetHintDismissed()
-  }
-
   function onSheetSnapChange(next: TimelineSheetSnap) {
     setSheetSnap(next)
-    if (next !== "collapsed") dismissSheetHint()
-    requestAnimationFrame(() => notifyMapSettled())
-  }
-
-  function openSheetFromHint() {
-    dismissSheetHint()
-    setSheetSnap("half")
     requestAnimationFrame(() => notifyMapSettled())
   }
 
@@ -311,13 +265,18 @@ export function AppShell({
       </aside>
 
       {/* Map column — starts where the sidebar ends */}
-      <div className="relative min-h-0 min-w-0 flex-1">
+      <div
+        className={cn(
+          "relative min-h-0 min-w-0 flex-1",
+          collapsed && "map-chrome-collapsed",
+        )}
+      >
         {/* Map stays full-bleed; timeline/sheet overlays it. */}
         <div className="absolute inset-0">{map}</div>
 
-        {/* Collapsed brand chip over the map */}
+        {/* Collapsed desktop: sidebar toggle above the map “i”. */}
         {collapsed ? (
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 hidden p-3 md:block md:p-6">
+          <div className="pointer-events-none absolute top-0 left-0 z-20 hidden p-4 md:block">
             <div className="pointer-events-auto w-max">
               <BrandHeader
                 collapsed
@@ -339,11 +298,6 @@ export function AppShell({
           <TimelineSheet
             snap={sheetSnap}
             onSnapChange={onSheetSnapChange}
-            hint={
-              sheetHintVisible ? (
-                <SheetHint onOpen={openSheetFromHint} />
-              ) : undefined
-            }
             header={timeline}
             footer={sidebarFooter}
           >
