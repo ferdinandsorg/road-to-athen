@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { Outlet, useLocation, useMatch, useNavigate } from "react-router-dom"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AppShell } from "@/components/AppShell"
 import { StageTimeline } from "@/components/StageTimeline"
+
+const MediaLightbox = lazy(() =>
+  import("@/components/MediaLightbox").then((m) => ({
+    default: m.MediaLightbox,
+  })),
+)
 import { MapView } from "@/features/map/MapView"
 import { MediaMarkers } from "@/features/map/MediaMarkers"
 import { SleepMarkers } from "@/features/map/SleepMarkers"
@@ -27,9 +33,6 @@ export type TripOutletContext = {
   setHoverKm: (km: number | null) => void
   openMedia: (item: MediaItem) => void
   activeMediaId: string | null
-  setActiveMediaId: (id: string | null) => void
-  lightboxOpen: boolean
-  setLightboxOpen: (open: boolean) => void
   goToStage: (nr: number) => void
 }
 
@@ -189,6 +192,14 @@ export function TripLayout() {
     [media, isStage, activeNr],
   )
 
+  const activeStage = useMemo(
+    () =>
+      isStage && activeNr != null
+        ? (stages.find((s) => s.nr === activeNr) ?? null)
+        : null,
+    [stages, isStage, activeNr],
+  )
+
   const { prevStage, nextStage } = useMemo(() => {
     if (!isStage || activeNr == null) {
       return { prevStage: null, nextStage: null }
@@ -202,6 +213,26 @@ export function TripLayout() {
     }
   }, [stages, isStage, activeNr])
 
+  /** Next stage that has media — for lightbox “continue” on the last slide. */
+  const nextStageMedia = useMemo(() => {
+    if (!isStage || activeNr == null) return null
+    const ordered = [...stages].sort((a, b) => a.nr - b.nr)
+    const i = ordered.findIndex((s) => s.nr === activeNr)
+    if (i < 0) return null
+    for (let j = i + 1; j < ordered.length; j++) {
+      const s = ordered[j]!
+      const stageItems = media
+        .filter((m) => m.stageNr === s.nr)
+        .sort(
+          (a, b) =>
+            new Date(a.takenAt).getTime() - new Date(b.takenAt).getTime(),
+        )
+      const first = stageItems[0]
+      if (first) return { nr: s.nr, firstId: first.id }
+    }
+    return null
+  }, [stages, media, isStage, activeNr])
+
   function openMedia(item: MediaItem) {
     setActiveMediaId(item.id)
     setLightboxOpen(true)
@@ -212,6 +243,13 @@ export function TripLayout() {
     setPinnedProgress(null)
     setFitEpoch((e) => e + 1)
     navigate(`/etappe/${nr}`)
+  }
+
+  function goNextStageInLightbox() {
+    if (!nextStageMedia) return
+    setActiveMediaId(nextStageMedia.firstId)
+    setLightboxOpen(true)
+    goToStage(nextStageMedia.nr)
   }
 
   function goOverview() {
@@ -229,9 +267,6 @@ export function TripLayout() {
     setHoverKm,
     openMedia,
     activeMediaId,
-    setActiveMediaId,
-    lightboxOpen,
-    setLightboxOpen,
     goToStage,
   }
 
@@ -252,105 +287,142 @@ export function TripLayout() {
   }
 
   return (
-    <AppShell
-      collapsed={collapsed}
-      onCollapsedChange={setCollapsed}
-      onMapLayoutSettled={() => setResizeEpoch((n) => n + 1)}
-      sidebarFooter={
-        isStage ? (
-          <div className="flex items-center justify-between gap-3">
+    <>
+      <AppShell
+        collapsed={collapsed}
+        onCollapsedChange={setCollapsed}
+        onMapLayoutSettled={() => setResizeEpoch((n) => n + 1)}
+        showSheetHint={isStage}
+        mapTopLeft={
+          isStage && (prevStage == null || nextStage == null) ? (
             <button
               type="button"
               onClick={goOverview}
               className={cn(
-                "flex h-9 cursor-pointer items-center gap-2 rounded-none border-0 px-2",
-                "bg-transparent text-sm text-primary outline-none transition-colors duration-150",
+                "flex h-9 cursor-pointer items-center gap-2 rounded-none border border-border px-3",
+                "bg-background text-sm text-primary shadow-lg outline-none transition-colors duration-150",
                 "hover:bg-primary hover:text-primary-foreground",
                 "focus-visible:bg-primary focus-visible:text-primary-foreground",
               )}
             >
               <Icons.arrowLeft className="size-4 shrink-0" strokeWidth={2} />
-              Zum Überblick
+              Zur Übersicht
             </button>
-            <div className="flex shrink-0 items-center gap-1">
-              {prevStage ? (
-                <button
-                  type="button"
-                  aria-label={`Etappe ${prevStage.nr} — vorherige`}
-                  onClick={() => goToStage(prevStage.nr)}
-                  className={cn(
-                    "flex size-9 cursor-pointer items-center justify-center rounded-none border-0",
-                    "bg-transparent text-primary outline-none transition-colors duration-150",
-                    "hover:bg-primary hover:text-primary-foreground",
-                    "focus-visible:bg-primary focus-visible:text-primary-foreground",
-                  )}
-                >
-                  <Icons.arrowLeft className="size-4" strokeWidth={2} />
-                </button>
-              ) : null}
-              {nextStage ? (
-                <button
-                  type="button"
-                  aria-label={`Etappe ${nextStage.nr} — nächste`}
-                  onClick={() => goToStage(nextStage.nr)}
-                  className={cn(
-                    "flex size-9 cursor-pointer items-center justify-center rounded-none border-0",
-                    "bg-transparent text-primary outline-none transition-colors duration-150",
-                    "hover:bg-primary hover:text-primary-foreground",
-                    "focus-visible:bg-primary focus-visible:text-primary-foreground",
-                  )}
-                >
-                  <Icons.arrowRight className="size-4" strokeWidth={2} />
-                </button>
-              ) : null}
+          ) : null
+        }
+        sidebarFooter={
+          isStage ? (
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={goOverview}
+                className={cn(
+                  "flex h-9 cursor-pointer items-center gap-2 rounded-none border-0 px-2",
+                  "bg-transparent text-sm text-primary outline-none transition-colors duration-150",
+                  "hover:bg-primary hover:text-primary-foreground",
+                  "focus-visible:bg-primary focus-visible:text-primary-foreground",
+                )}
+              >
+                <Icons.arrowLeft className="size-4 shrink-0" strokeWidth={2} />
+                Zum Überblick
+              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                {prevStage ? (
+                  <button
+                    type="button"
+                    aria-label={`Etappe ${prevStage.nr} — vorherige`}
+                    onClick={() => goToStage(prevStage.nr)}
+                    className={cn(
+                      "flex size-9 cursor-pointer items-center justify-center rounded-none border-0",
+                      "bg-transparent text-primary outline-none transition-colors duration-150",
+                      "hover:bg-primary hover:text-primary-foreground",
+                      "focus-visible:bg-primary focus-visible:text-primary-foreground",
+                    )}
+                  >
+                    <Icons.arrowLeft className="size-4" strokeWidth={2} />
+                  </button>
+                ) : null}
+                {nextStage ? (
+                  <button
+                    type="button"
+                    aria-label={`Etappe ${nextStage.nr} — nächste`}
+                    onClick={() => goToStage(nextStage.nr)}
+                    className={cn(
+                      "flex size-9 cursor-pointer items-center justify-center rounded-none border-0",
+                      "bg-transparent text-primary outline-none transition-colors duration-150",
+                      "hover:bg-primary hover:text-primary-foreground",
+                      "focus-visible:bg-primary focus-visible:text-primary-foreground",
+                    )}
+                  >
+                    <Icons.arrowRight className="size-4" strokeWidth={2} />
+                  </button>
+                ) : null}
+              </div>
             </div>
-          </div>
-        ) : undefined
-      }
-      map={
-        <MapView
-          overview={overview}
-          activeStageNr={isStage ? activeNr : null}
-          detailLine={isStage ? (detail?.line ?? null) : null}
-          fitBoundsTarget={fitBoundsTarget}
-          introBounds={overviewBounds}
-          fitEpoch={fitEpoch}
-          resizeEpoch={resizeEpoch}
-          hoverPoint={hoverPoint}
-          followPoint={followPoint}
-          // 3D on stage when capable; liteMode (phones) skips DEM entirely in MapView.
-          terrain3d={isStage && terrainCapable && !isMobile}
-          liteMode={isMobile}
-          padding={mapPadding}
-          onStageSelect={goToStage}
-          hideStageEnds
-        >
-          <SleepMarkers
-            stages={stages}
-            size={isStage ? "md" : "sm"}
+          ) : undefined
+        }
+        map={
+          <MapView
+            overview={overview}
             activeStageNr={isStage ? activeNr : null}
-            onSelectStage={goToStage}
-          />
-          {isStage && (
-            <MediaMarkers
-              items={stageMedia}
-              activeId={activeMediaId}
-              onSelect={openMedia}
+            detailLine={isStage ? (detail?.line ?? null) : null}
+            fitBoundsTarget={fitBoundsTarget}
+            introBounds={overviewBounds}
+            fitEpoch={fitEpoch}
+            resizeEpoch={resizeEpoch}
+            hoverPoint={hoverPoint}
+            followPoint={followPoint}
+            // 3D on stage when capable; liteMode (phones) skips DEM entirely in MapView.
+            terrain3d={isStage && terrainCapable && !isMobile}
+            liteMode={isMobile}
+            padding={mapPadding}
+            onStageSelect={goToStage}
+            hideStageEnds
+          >
+            <SleepMarkers
+              stages={stages}
+              size={isStage ? "md" : "sm"}
+              activeStageNr={isStage ? activeNr : null}
+              onSelectStage={goToStage}
             />
-          )}
-        </MapView>
-      }
-      panel={<Outlet context={outletContext} />}
-      timeline={
-        <StageTimeline
-          stages={stages}
-          progress={progress}
-          activeStageNr={isStage ? activeNr : null}
-          onScrub={onScrubThrottled}
-          onScrubEnd={onScrubEndFlush}
-          onSelectStage={goToStage}
-        />
-      }
-    />
+            {isStage && (
+              <MediaMarkers
+                items={stageMedia}
+                activeId={activeMediaId}
+                onSelect={openMedia}
+              />
+            )}
+          </MapView>
+        }
+        panel={<Outlet context={outletContext} />}
+        timeline={
+          <StageTimeline
+            stages={stages}
+            progress={progress}
+            activeStageNr={isStage ? activeNr : null}
+            onScrub={onScrubThrottled}
+            onScrubEnd={onScrubEndFlush}
+            onSelectStage={goToStage}
+            showScrubHint={!isStage}
+            embedded={isMobile}
+          />
+        }
+      />
+      {/* Outside the panel so map taps open the lightbox on mobile too. */}
+      {activeStage ? (
+        <Suspense fallback={null}>
+          <MediaLightbox
+            items={stageMedia}
+            open={lightboxOpen}
+            startId={activeMediaId}
+            timeZone={activeStage.timeZone}
+            line={detail?.line}
+            bbox={activeStage.bbox}
+            onOpenChange={setLightboxOpen}
+            onNextStage={nextStageMedia ? goNextStageInLightbox : undefined}
+          />
+        </Suspense>
+      ) : null}
+    </>
   )
 }

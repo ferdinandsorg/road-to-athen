@@ -1,11 +1,15 @@
-import { useMemo } from "react"
+import { lazy, Suspense, useMemo } from "react"
 import { useOutletContext } from "react-router-dom"
 import { Separator } from "@/components/ui/separator"
 import { StageStats } from "@/components/StageStats"
 import { MediaStrip } from "@/components/MediaStrip"
-import { MediaLightbox } from "@/components/MediaLightbox"
-import { ElevationProfile } from "@/components/ElevationProfile"
 import { SleepPlaceInfo } from "@/components/SleepPlaceInfo"
+
+const ElevationProfile = lazy(() =>
+  import("@/components/ElevationProfile").then((m) => ({
+    default: m.ElevationProfile,
+  })),
+)
 import { getStageSleep } from "@/data/sleeps"
 import { useStageDetail } from "@/hooks/useTripData"
 import { formatDate, formatStageTitle } from "@/lib/format"
@@ -21,11 +25,8 @@ export function StagePage() {
     media,
     activeNr,
     setHoverKm,
+    openMedia,
     activeMediaId,
-    setActiveMediaId,
-    lightboxOpen,
-    setLightboxOpen,
-    goToStage,
   } = useOutletContext<TripOutletContext>()
 
   const nr = activeNr
@@ -42,48 +43,21 @@ export function StagePage() {
     [media, nr],
   )
 
-  /** Next stage that has media — for lightbox “continue” on the last slide. */
-  const nextStageMedia = useMemo(() => {
-    if (nr == null) return null
-    const ordered = [...stages].sort((a, b) => a.nr - b.nr)
-    const i = ordered.findIndex((s) => s.nr === nr)
-    if (i < 0) return null
-    for (let j = i + 1; j < ordered.length; j++) {
-      const s = ordered[j]!
-      const stageItems = media
-        .filter((m) => m.stageNr === s.nr)
-        .sort(
-          (a, b) =>
-            new Date(a.takenAt).getTime() - new Date(b.takenAt).getTime(),
-        )
-      const first = stageItems[0]
-      if (first) return { nr: s.nr, firstId: first.id }
-    }
-    return null
-  }, [stages, media, nr])
-
-  function goNextStageInLightbox() {
-    if (!nextStageMedia) return
-    setActiveMediaId(nextStageMedia.firstId)
-    setLightboxOpen(true)
-    goToStage(nextStageMedia.nr)
-  }
-
   if (!stage || nr == null) {
     return <p className="text-destructive">Etappe nicht gefunden</p>
   }
 
   return (
     <>
-      <div className="min-w-0">
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+      <header className="min-w-0">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Etappe {stageDisplayLabel(stage, labels)}
           <span className="font-normal normal-case tracking-normal">
             {" "}
             · {formatDate(stage.startUtc, stage.timeZone)}
           </span>
         </p>
-        <h2 className="font-heading mt-2 text-lg font-bold leading-snug tracking-tight break-words sm:text-xl">
+        <h2 className="font-heading mt-1.5 text-2xl font-bold leading-tight tracking-tight break-words md:text-xl md:leading-snug">
           {formatStageTitle(stage.name)}
         </h2>
         {/^\d+$/.test(stage.id) ? (
@@ -91,47 +65,35 @@ export function StagePage() {
             href={`https://www.strava.com/activities/${stage.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 inline-block text-sm text-primary no-underline hover:no-underline"
+            className="mt-2 inline-block text-sm text-muted-foreground no-underline transition-colors hover:text-primary hover:no-underline"
           >
             Auf Strava ansehen ↗
           </a>
         ) : null}
-      </div>
+      </header>
 
-      <Separator />
+      <Separator className="bg-border" />
       <StageStats stage={stage} />
 
       {detail && (
-        <ElevationProfile profile={detail.profile} onHoverKm={setHoverKm} />
+        <Suspense fallback={null}>
+          <ElevationProfile profile={detail.profile} onHoverKm={setHoverKm} />
+        </Suspense>
       )}
 
       <div>
-        <p className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="mb-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Fotos & Videos
         </p>
         <MediaStrip
           items={items}
           timeZone={stage.timeZone}
           activeId={activeMediaId}
-          onSelect={(item) => {
-            setActiveMediaId(item.id)
-            setLightboxOpen(true)
-          }}
+          onSelect={openMedia}
         />
       </div>
 
       {stageSleep && <SleepPlaceInfo sleep={stageSleep} />}
-
-      <MediaLightbox
-        items={items}
-        open={lightboxOpen}
-        startId={activeMediaId}
-        timeZone={stage.timeZone}
-        line={detail?.line}
-        bbox={stage.bbox}
-        onOpenChange={setLightboxOpen}
-        onNextStage={nextStageMedia ? goNextStageInLightbox : undefined}
-      />
     </>
   )
 }

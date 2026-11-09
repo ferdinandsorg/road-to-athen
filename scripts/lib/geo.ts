@@ -59,9 +59,11 @@ export function buildProfile(
   if (points.length === 0) return []
   const total = points[points.length - 1]?.distanceM ?? 0
   if (total <= 0) {
-    return points
-      .slice(0, count)
-      .map((p, i) => [i, Math.round(p.ele)] as [number, number])
+    return sanitizeProfile(
+      points
+        .slice(0, count)
+        .map((p, i) => [i, Math.round(p.ele)] as [number, number]),
+    )
   }
   const out: [number, number][] = []
   for (let i = 0; i < count; i++) {
@@ -77,7 +79,24 @@ export function buildProfile(
     }
     out.push([roundCoord(best.distanceM / 1000, 3), Math.round(best.ele)])
   }
-  return out
+  return sanitizeProfile(out)
+}
+
+/** Drop leading 0 m spikes when FIT lacked altitude at the start. */
+function sanitizeProfile(profile: [number, number][]): [number, number][] {
+  if (profile.length === 0) return profile
+  let firstValid = -1
+  for (let i = 0; i < profile.length; i++) {
+    if (profile[i]![1] > 0) {
+      firstValid = i
+      break
+    }
+  }
+  if (firstValid <= 0) return profile
+  const fill = profile[firstValid]![1]
+  return profile.map(([km, elev], i) =>
+    i < firstValid ? [km, fill] : [km, elev],
+  )
 }
 
 /** Trim first N meters of a track (privacy). */

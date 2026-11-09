@@ -5,6 +5,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
+import { sanitizeElevationProfile } from "@/lib/elevation-profile"
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
 type Props = {
@@ -34,7 +35,7 @@ function niceCeil(n: number, step: number): number {
 export function ElevationProfile({ profile, onHoverKm }: Props) {
   const data = useMemo(
     () =>
-      profile.map(([km, elev]) => ({
+      sanitizeElevationProfile(profile).map(([km, elev]) => ({
         km,
         // GPS/baro noise can dip slightly below sea level – clamp for display
         elev: Math.max(0, elev),

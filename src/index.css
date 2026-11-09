@@ -58,7 +58,8 @@
   --route-casing: oklch(1 0 0);
   --stage-end: oklch(0.32 0.18 264);
   --finish: oklch(0.52 0.28 264);
-  --map-panel: oklch(1 0 0 / 0.95);
+  /* Opaque white — matches timeline / floating map chrome (no map bleed-through). */
+  --map-panel: oklch(1 0 0);
 }
 
 .dark {
@@ -195,4 +196,48 @@
     stroke-linecap: square;
     stroke-linejoin: miter;
   }
+}
+
+/*
+ * Unlayered — MapLibre’s CSS is unlayered and would win over @layer base.
+ * Desktop NavigationControl only (mobile uses AppShell-matched custom buttons).
+ */
+.maplibregl-ctrl-top-right .maplibregl-ctrl {
+  margin: 1rem 1rem 0 0 !important;
+}
+.maplibregl-ctrl-group {
+  border: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  background: var(--background) !important;
+  box-shadow: var(--shadow-lg) !important;
+  overflow: hidden;
+}
+.maplibregl-ctrl-group:not(:empty) {
+  box-shadow: var(--shadow-lg) !important;
+}
+.maplibregl-ctrl-group button {
+  border-radius: 0 !important;
+  background-color: var(--background) !important;
+  width: 36px !important;
+  height: 36px !important;
+}
+.maplibregl-ctrl-group button + button {
+  border-top: 1px solid var(--border) !important;
+}
+.maplibregl-ctrl-group button:focus,
+.maplibregl-ctrl-group button:focus:focus-visible,
+.maplibregl-ctrl-group button:focus:first-child,
+.maplibregl-ctrl-group button:focus:last-child,
+.maplibregl-ctrl-group button:focus:only-child {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+@media (hover: hover) {
+  .maplibregl-ctrl-group button:not(:disabled):hover {
+    background-color: var(--accent) !important;
+  }
+}
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  border-radius: 0 !important;
 }

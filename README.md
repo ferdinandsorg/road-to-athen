@@ -68,6 +68,7 @@ Repo → Settings → Secrets and variables → Actions — diese Secrets anlege
 - `FTP_REMOTE_DIR` (meist `/`)
 - `FTP_PORT` (`22`)
 - `VITE_MAPBOX_ACCESS_TOKEN` (optional, aktuell ungenutzt — Karte läuft ohne Token)
+- `VITE_SITE_URL` (öffentliche Origin ohne Slash am Ende, z. B. `https://example.com` — für Canonical + Open-Graph beim Share)
 
 `public/media/` liegt nicht im Git. Einmal lokal hochladen; CI überschreibt nur Build-Dateien und lässt vorhandene Medien auf dem Server.
 
@@ -75,13 +76,15 @@ Repo → Settings → Secrets and variables → Actions — diese Secrets anlege
 
 - Primärfarben: Blau `#1f26f0` + Weiß (Griechenland)
 - Schrift: Uncut Sans Variable (`design/fonts/` → `src/assets/fonts/`)
+- Kartenlabels: dieselben Schnitte als MapLibre-Glyphen in `public/fonts/` (bei Bedarf neu bauen: `npm run build:map-fonts`, braucht `fonttools` + `fontnik`)
+- Share-Bild / Favicons: `npm run build:social` → `public/og-image.png`, `apple-touch-icon.png`
 - Radius: 0, großzügiges Spacing
 
 Siehe `docs/DESIGN_SYSTEM.md` und `docs/PLAN.md`.
 
 ## Font-Lizenz
 
-`UncutSans-Variable.ttf` ist lizenzpflichtig. Ob die Datei ins öffentliche Git darf, liegt bei dir.
+`UncutSans-Variable.ttf` ist lizenzpflichtig. Ob die Datei (und die daraus erzeugten Map-Glyphen) ins öffentliche Git darf, liegt bei dir.
 
 ## Automatischer GitHub-Sync (macOS)
 

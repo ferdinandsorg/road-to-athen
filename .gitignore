@@ -41,3 +41,6 @@ public/fixtures/
 # Local automation logs
 .cursor/logs/
 
+# Temp TTFs while regenerating MapLibre Uncut Sans glyphs
+scripts/.font-tmp/
+

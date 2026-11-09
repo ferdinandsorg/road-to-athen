@@ -23,6 +23,13 @@ type Props = {
   /** stage under playhead + exact progress (no snap to stage mid). */
   onScrubEnd: (stageNr: number, progress: number) => void
   onSelectStage: (stageNr: number) => void
+  /** Mobile scrub hint — only useful on the trip overview. */
+  showScrubHint?: boolean
+  /**
+   * When true, mobile track has no card chrome (parent TimelineSheet provides it).
+   * Desktop unchanged.
+   */
+  embedded?: boolean
   className?: string
 }
 
@@ -31,6 +38,51 @@ const SCRUB_TICK_STEPS = 80
 
 /** Mobile: ~7 day marks visible; track grows so you scroll for the rest. */
 const MOBILE_DAY_CELL_PX = 56
+
+/** Progress fraction near each end where the pin eases off center. */
+const MOBILE_PIN_EDGE_ZONE = 0.2
+
+/**
+ * Soft pin travel: centered in the middle of the route; near start/end it
+ * eases toward a small inset (smoothstep) so the first/last marks feel reachable.
+ */
+function mobilePinX(progress: number, viewW: number): number {
+  const inset = Math.min(48, viewW * 0.18)
+  const mid = viewW / 2
+  if (viewW <= 0) return mid
+  if (progress <= 0) return inset
+  if (progress >= 1) return viewW - inset
+  if (progress < MOBILE_PIN_EDGE_ZONE) {
+    const t = progress / MOBILE_PIN_EDGE_ZONE
+    const s = t * t * (3 - 2 * t)
+    return inset + (mid - inset) * s
+  }
+  if (progress > 1 - MOBILE_PIN_EDGE_ZONE) {
+    const t = (progress - (1 - MOBILE_PIN_EDGE_ZONE)) / MOBILE_PIN_EDGE_ZONE
+    const s = t * t * (3 - 2 * t)
+    return mid + (viewW - inset - mid) * s
+  }
+  return mid
+}
+
+/**
+ * Left/right spacers equal the end-pin inset (not viewW/2). Then
+ * scrollLeft ∈ [0, max] maps 1:1 to p ∈ [0, 1] under the soft pin —
+ * no dead zone, no clamp-vs-momentum flicker at the ends.
+ */
+function mobileEdgePadPx(viewW: number): number {
+  return mobilePinX(0, viewW)
+}
+
+/** scrollLeft that keeps mark at progress `p` under the soft pin. */
+function scrollLeftForProgress(
+  p: number,
+  trackW: number,
+  viewW: number,
+): number {
+  const leftPad = mobileEdgePadPx(viewW)
+  return p * trackW + leftPad - mobilePinX(p, viewW)
+}
 
 function progressFromClientX(el: HTMLElement, clientX: number): number {
   const rect = el.getBoundingClientRect()
@@ -45,13 +97,28 @@ export function StageTimeline({
   onScrub,
   onScrubEnd,
   onSelectStage,
+  showScrubHint = false,
+  embedded = false,
   className,
 }: Props) {
   const desktopTrackRef = useRef<HTMLDivElement>(null)
   const mobileTrackRef = useRef<HTMLDivElement>(null)
   const mobileScrollRef = useRef<HTMLDivElement>(null)
   const draggingRef = useRef(false)
+  const mobileUserScrollRef = useRef(false)
+  const mobileScrollEndTimer = useRef<number | null>(null)
+  /** Ignore onScroll fired by programmatic scrollLeft sync. */
+  const ignoreScrollUntilRef = useRef(0)
   const [dragging, setDragging] = useState(false)
+  /** Scrollport width — edge pads are half of this so progress 0/1 can center. */
+  const [mobileViewW, setMobileViewW] = useState(0)
+  /**
+   * Latest scrub progress for pin X. Controlled `progress` can lag a frame;
+   * during scroll/drag the pin follows this so it doesn’t stutter.
+   */
+  const [pinProgress, setPinProgress] = useState(progress)
+  /** Hint only until the first roller scrub. */
+  const [showMobileHint, setShowMobileHint] = useState(true)
   const isMobile = useIsMobile()
   // Freewheel audio is noticeable CPU/audio work on phones — desktop only.
   const { tick, reset, unlock } = useFreewheelSound({ enabled: !isMobile })
@@ -96,6 +163,7 @@ export function StageTimeline({
   }, [spans, totalM, progress, stages])
 
   function emitScrub(next: number) {
+    setPinProgress(next)
     onScrub(next)
     tick(Math.floor(next * SCRUB_TICK_STEPS))
   }
@@ -106,6 +174,47 @@ export function StageTimeline({
     reset()
     const stageNr = stageNrAtProgress(spans, totalM, next)
     if (stageNr != null) onScrubEnd(stageNr, next)
+  }
+
+  /**
+   * Soft pin + inset spacers (see mobileEdgePadPx):
+   * scrollLeft(p) = p*trackW + inset - mobilePinX(p, viewW).
+   * DOM max scroll equals scrollLeft(1) — no clamp loop at the ends.
+   */
+  function progressFromMobileScroll(): number {
+    const scroll = mobileScrollRef.current
+    const track = mobileTrackRef.current
+    if (!scroll || !track || track.offsetWidth <= 0) return 0
+    const trackW = track.offsetWidth
+    const viewW = scroll.clientWidth
+    const target = scroll.scrollLeft
+    let lo = 0
+    let hi = 1
+    for (let i = 0; i < 14; i++) {
+      const mid = (lo + hi) / 2
+      const at = scrollLeftForProgress(mid, trackW, viewW)
+      if (at < target) lo = mid
+      else hi = mid
+    }
+    const p = (lo + hi) / 2
+    // Snap tiny binary-search noise at the hard ends.
+    if (p < 0.001) return 0
+    if (p > 0.999) return 1
+    return p
+  }
+
+  function syncMobileScrollToProgress(p: number) {
+    const scroll = mobileScrollRef.current
+    const track = mobileTrackRef.current
+    if (!scroll || !track || track.offsetWidth <= 0) return
+    const nextLeft = scrollLeftForProgress(
+      Math.min(1, Math.max(0, p)),
+      track.offsetWidth,
+      scroll.clientWidth,
+    )
+    if (Math.abs(scroll.scrollLeft - nextLeft) < 1) return
+    ignoreScrollUntilRef.current = performance.now() + 120
+    scroll.scrollLeft = nextLeft
   }
 
   function bindScrubHandlers(
@@ -153,18 +262,66 @@ export function StageTimeline({
   const desktopScrub = bindScrubHandlers(desktopTrackRef, {
     ignoreButtons: true,
   })
-  const mobileThumbScrub = bindScrubHandlers(mobileTrackRef)
 
-  // Keep the playhead roughly centered in the mobile scroll window.
+  // Measure viewport for soft-pin inset spacers.
   useEffect(() => {
-    if (dragging) return
     const scroll = mobileScrollRef.current
-    const track = mobileTrackRef.current
-    if (!scroll || !track || track.offsetWidth <= 0) return
-    const x = progress * track.offsetWidth
-    const nextLeft = x - scroll.clientWidth / 2
-    scroll.scrollLeft = Math.max(0, Math.min(nextLeft, track.offsetWidth - scroll.clientWidth))
-  }, [progress, dragging, mobileTrackWidth])
+    if (!scroll) return
+    const measure = () => {
+      setMobileViewW(scroll.clientWidth)
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(scroll)
+    return () => ro.disconnect()
+  }, [])
+
+  const mobileEdgePad =
+    mobileViewW > 0 ? mobileEdgePadPx(mobileViewW) : 0
+  const mobilePinLeft =
+    mobileViewW > 0 ? mobilePinX(pinProgress, mobileViewW) : 0
+
+  // External progress (stage change, desktop scrub) → keep mark under pin.
+  useEffect(() => {
+    if (mobileUserScrollRef.current || dragging) return
+    setPinProgress(progress)
+    syncMobileScrollToProgress(progress)
+  }, [progress, dragging, mobileTrackWidth, mobileViewW])
+
+  function onMobileScroll() {
+    if (performance.now() < ignoreScrollUntilRef.current) return
+
+    if (!mobileUserScrollRef.current) {
+      mobileUserScrollRef.current = true
+      unlock()
+      setDragging(true)
+      draggingRef.current = true
+      setShowMobileHint(false)
+    }
+
+    const next = progressFromMobileScroll()
+    emitScrub(next)
+
+    if (mobileScrollEndTimer.current != null) {
+      window.clearTimeout(mobileScrollEndTimer.current)
+    }
+    mobileScrollEndTimer.current = window.setTimeout(() => {
+      mobileScrollEndTimer.current = null
+      const next = progressFromMobileScroll()
+      // Hold ignore so parent progress sync doesn’t yank scroll during settle.
+      ignoreScrollUntilRef.current = performance.now() + 180
+      mobileUserScrollRef.current = false
+      endScrub(next)
+    }, 140)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (mobileScrollEndTimer.current != null) {
+        window.clearTimeout(mobileScrollEndTimer.current)
+      }
+    }
+  }, [])
 
   const metaRow = (
     <div className="mt-1.5 flex items-center justify-between gap-3 text-[10px] uppercase tracking-wide text-muted-foreground md:mt-1 md:text-[10px]">
@@ -186,113 +343,159 @@ export function StageTimeline({
     </div>
   )
 
-  return (
-    <div
-      className={cn(
-        // backdrop-blur over a live map is expensive on mobile GPUs.
-        "w-full border bg-map-panel shadow-lg md:backdrop-blur",
-        className,
-      )}
-      role="group"
-      aria-label="Reisetimeline"
-    >
-      {/* ——— Mobile: scrollable scale; desktop-style playhead + invisible touch target ——— */}
-      <div className="px-3 py-3 md:hidden">
-        <div
-          ref={mobileScrollRef}
-          className="overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          <div
-            ref={mobileTrackRef}
-            className="relative select-none"
-            style={{ width: mobileTrackWidth, height: 56 }}
-            role="slider"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(progress * 100)}
-            aria-label="Position auf der Route"
-          >
-            <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-            <ActiveSegment
-              spans={spans}
-              totalM={totalM}
-              activeStageNr={activeStageNr}
-            />
-            <StageTicks
-              spans={spans}
-              totalM={totalM}
-              stages={stages}
-              activeStageNr={activeStageNr}
-              onSelectStage={onSelectStage}
-              size="lg"
-            />
-            <Playhead progress={progress} />
-            {/* Invisible fat hit area — scrub without a visible square pin */}
-            <button
-              type="button"
-              aria-label="Position ziehen"
-              className="absolute top-0 bottom-0 z-10 w-11 -translate-x-1/2 touch-none cursor-ew-resize border-0 bg-transparent"
-              style={{ left: `${progress * 100}%` }}
-              onPointerDown={mobileThumbScrub.onPointerDown}
-              onPointerMove={mobileThumbScrub.onPointerMove}
-              onPointerUp={mobileThumbScrub.onPointerUp}
-              onPointerCancel={mobileThumbScrub.onPointerUp}
-            />
-          </div>
-        </div>
-        <p className="mt-1.5 text-[10px] text-muted-foreground">
-          Wischen: weitere Etappen · Playhead ziehen: scrubben
-        </p>
-        {metaRow}
-      </div>
+  const scrubHint =
+    showScrubHint && showMobileHint ? (
+      <p className="mb-1.5 flex w-full justify-center py-1.5 text-[10px] leading-none text-muted-foreground md:hidden">
+        Timeline wischen um Etappen zu sehen
+      </p>
+    ) : null
 
-      {/* ——— Desktop: unchanged compact full-width track ——— */}
-      <div className="hidden md:block">
-        <div className="flex items-stretch">
-          <div className="min-w-0 flex-1 px-3 py-2.5 sm:px-4 sm:py-3">
+  return (
+    <div className={cn("w-full", className)} role="group" aria-label="Reisetimeline">
+      {/* Overview hint sits above the card unless embedded in TimelineSheet. */}
+      {!embedded ? scrubHint : null}
+
+      <div
+        className={cn(
+          "w-full",
+          !embedded &&
+            // backdrop-blur over a live map is expensive on mobile GPUs.
+            "border bg-map-panel shadow-lg md:backdrop-blur",
+        )}
+      >
+        {/* ——— Mobile: roller scale; soft pin at edges; spacers = pin inset ——— */}
+        <div className={cn(embedded ? "md:hidden" : "px-3 py-3 md:hidden")}>
+          {embedded ? scrubHint : null}
+          <div className="relative">
             <div
-              ref={desktopTrackRef}
-              className="relative h-11 cursor-ew-resize touch-none select-none sm:h-12"
-              onPointerDown={desktopScrub.onPointerDown}
-              onPointerMove={desktopScrub.onPointerMove}
-              onPointerUp={desktopScrub.onPointerUp}
-              onPointerCancel={desktopScrub.onPointerUp}
-              role="slider"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(progress * 100)}
-              aria-label="Position auf der Route"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                const delta =
-                  e.key === "ArrowRight" || e.key === "ArrowUp"
-                    ? 0.01
-                    : e.key === "ArrowLeft" || e.key === "ArrowDown"
-                      ? -0.01
-                      : 0
-                if (!delta) return
-                e.preventDefault()
-                const next = Math.min(1, Math.max(0, progress + delta))
-                emitScrub(next)
-                if (e.key === "Enter") endScrub(next)
-              }}
+              ref={mobileScrollRef}
+              className="overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              onScroll={onMobileScroll}
             >
-              <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-              <ActiveSegment
-                spans={spans}
-                totalM={totalM}
-                activeStageNr={activeStageNr}
-              />
-              <StageTicks
-                spans={spans}
-                totalM={totalM}
-                stages={stages}
-                activeStageNr={activeStageNr}
-                onSelectStage={onSelectStage}
-              />
-              <Playhead progress={progress} />
+              {/*
+                Flex row: spacers = soft-pin inset so scroll range matches p∈[0,1]
+                under the moving pin (no end clamp / flicker). Baseline through spacers.
+              */}
+              <div className="flex w-max">
+                <div
+                  className="relative shrink-0"
+                  style={{ width: mobileEdgePad, height: 56 }}
+                  aria-hidden
+                >
+                  <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+                </div>
+                <div
+                  ref={mobileTrackRef}
+                  className="relative shrink-0 select-none"
+                  style={{ width: mobileTrackWidth, height: 56 }}
+                  role="slider"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(pinProgress * 100)}
+                  aria-label="Position auf der Route"
+                >
+                  <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+                  <ActiveSegment
+                    spans={spans}
+                    totalM={totalM}
+                    activeStageNr={activeStageNr}
+                  />
+                  <StageTicks
+                    spans={spans}
+                    totalM={totalM}
+                    stages={stages}
+                    activeStageNr={activeStageNr}
+                    onSelectStage={onSelectStage}
+                    size="lg"
+                  />
+                </div>
+                <div
+                  className="relative shrink-0"
+                  style={{ width: mobileEdgePad, height: 56 }}
+                  aria-hidden
+                >
+                  <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+                </div>
+              </div>
             </div>
-            {metaRow}
+
+            {/* Playhead — soft travel near start/end; centered in the middle. */}
+            <div
+              className="pointer-events-none absolute inset-y-0 z-20 -translate-x-1/2"
+              style={{ left: mobilePinLeft }}
+              aria-hidden
+            >
+              <div className="relative h-full w-px bg-primary">
+                <div className="absolute left-1/2 top-0 size-2 -translate-x-1/2 bg-primary" />
+                <div className="absolute left-1/2 bottom-0 size-2 -translate-x-1/2 bg-primary" />
+              </div>
+            </div>
+
+            {/* Edge fades — skip on embedded (collapsed sheet is transparent over map). */}
+            {!embedded ? (
+              <>
+                <div
+                  className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-map-panel to-transparent"
+                  aria-hidden
+                />
+                <div
+                  className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-map-panel to-transparent"
+                  aria-hidden
+                />
+              </>
+            ) : null}
+          </div>
+          {metaRow}
+        </div>
+
+        {/* ——— Desktop: unchanged compact full-width track ——— */}
+        <div className="hidden md:block">
+          <div className="flex items-stretch">
+            <div className="min-w-0 flex-1 px-3 py-2.5 sm:px-4 sm:py-3">
+              <div
+                ref={desktopTrackRef}
+                className="relative h-11 cursor-ew-resize touch-none select-none sm:h-12"
+                onPointerDown={desktopScrub.onPointerDown}
+                onPointerMove={desktopScrub.onPointerMove}
+                onPointerUp={desktopScrub.onPointerUp}
+                onPointerCancel={desktopScrub.onPointerUp}
+                role="slider"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(progress * 100)}
+                aria-label="Position auf der Route"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  const delta =
+                    e.key === "ArrowRight" || e.key === "ArrowUp"
+                      ? 0.01
+                      : e.key === "ArrowLeft" || e.key === "ArrowDown"
+                        ? -0.01
+                        : 0
+                  if (!delta) return
+                  e.preventDefault()
+                  const next = Math.min(1, Math.max(0, progress + delta))
+                  emitScrub(next)
+                  if (e.key === "Enter") endScrub(next)
+                }}
+              >
+                <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+                <ActiveSegment
+                  spans={spans}
+                  totalM={totalM}
+                  activeStageNr={activeStageNr}
+                />
+                <StageTicks
+                  spans={spans}
+                  totalM={totalM}
+                  stages={stages}
+                  activeStageNr={activeStageNr}
+                  onSelectStage={onSelectStage}
+                />
+                <Playhead progress={progress} />
+              </div>
+              {metaRow}
+            </div>
           </div>
         </div>
       </div>
@@ -426,8 +629,7 @@ function StageTicks({
         >
           <div
             className={cn(
-              "absolute top-1/2 w-px -translate-y-1/2 bg-foreground/35",
-              mark.leftPct >= 100 ? "right-0" : "left-0",
+              "absolute left-0 top-1/2 w-px -translate-y-1/2 bg-foreground/35",
               mark.active
                 ? large
                   ? "h-7 bg-primary"
@@ -441,15 +643,10 @@ function StageTicks({
             <button
               type="button"
               className={cn(
-                "absolute top-0 font-medium uppercase tracking-wider tabular-nums",
+                "absolute top-0 left-0 -translate-x-1/2 font-medium uppercase tracking-wider tabular-nums",
                 large
                   ? "min-w-8 py-0.5 text-xs"
                   : "text-[9px] sm:text-[10px]",
-                mark.leftPct <= 0
-                  ? "left-0"
-                  : mark.leftPct >= 100
-                    ? "right-0"
-                    : "left-0 -translate-x-1/2",
                 mark.active ? "text-primary" : "text-muted-foreground",
               )}
               onClick={(e) => {

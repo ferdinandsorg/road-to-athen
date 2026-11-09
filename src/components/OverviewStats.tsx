@@ -41,7 +41,7 @@ export function OverviewStats({ stages }: Props) {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-5">
         {items.map((item) => (
           <Stat
             key={item.label}
@@ -53,13 +53,13 @@ export function OverviewStats({ stages }: Props) {
       </div>
 
       <div>
-        <p className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="mb-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Nächte
         </p>
         <ul className="flex flex-col gap-3">
           {sleepItems.map(({ kind, label, value, Icon }) => (
             <li key={kind} className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+              <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <Icon
                   className="size-4 shrink-0 text-primary"
                   strokeWidth={2.25}

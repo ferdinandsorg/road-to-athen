@@ -15,7 +15,7 @@ type Props = {
 
 export function StageStats({ stage }: Props) {
   return (
-    <div className="grid grid-cols-2 gap-6">
+    <div className="grid grid-cols-2 gap-x-6 gap-y-5">
       <Stat label="Distanz" value={formatKm(stage.distanceM)} unit="km" />
       <Stat
         label="Höhenmeter"

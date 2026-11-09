@@ -29,13 +29,34 @@ export function readFitGz(filePath: string): FitPoint[] {
     const lat = latRaw * SEMICIRCLE
     const lng = lngRaw * SEMICIRCLE
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
-    const ele =
+    const rawEle =
       (r.enhancedAltitude as number | undefined) ??
-      (r.altitude as number | undefined) ??
-      0
+      (r.altitude as number | undefined)
+    // Missing altitude must not become 0 — that draws a cliff in the profile.
+    const ele =
+      rawEle != null && Number.isFinite(rawEle) ? rawEle : Number.NaN
     const distanceM = (r.distance as number | undefined) ?? 0
     const timestamp = r.timestamp instanceof Date ? r.timestamp : new Date()
     points.push({ lng, lat, ele, distanceM, timestamp })
   }
-  return points
+  return fillMissingElevations(points)
+}
+
+/** Forward- then back-fill NaN altitudes from neighbouring GPS samples. */
+function fillMissingElevations(points: FitPoint[]): FitPoint[] {
+  if (points.length === 0) return points
+  const out = points.map((p) => ({ ...p }))
+  let last = Number.NaN
+  for (const p of out) {
+    if (Number.isFinite(p.ele)) last = p.ele
+    else if (Number.isFinite(last)) p.ele = last
+  }
+  let next = Number.NaN
+  for (let i = out.length - 1; i >= 0; i--) {
+    const p = out[i]!
+    if (Number.isFinite(p.ele)) next = p.ele
+    else if (Number.isFinite(next)) p.ele = next
+    else p.ele = 0
+  }
+  return out
 }

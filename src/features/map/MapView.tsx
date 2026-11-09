@@ -12,18 +12,18 @@ import type {
   Map as MaplibreMap,
   StyleSpecification,
 } from "maplibre-gl"
-import "maplibre-gl/dist/maplibre-gl.css"
+import { Button } from "@/components/ui/button"
+import { Icons } from "@/lib/icons"
 import { mapSources, mapTheme } from "@/lib/map-theme"
 import {
-  buildRtaBasemapStyleFallback,
-  loadRtaBasemapStyle,
-  RTA_MOBILE_HIDDEN_LAYERS,
-} from "@/lib/rta-basemap-style"
+  buildLibertyBasemapStyleFallback,
+  LIBERTY_MOBILE_HIDDEN_LAYERS,
+  loadLibertyBasemapStyle,
+} from "@/lib/liberty-basemap-style"
 import {
   flattenFeatureCollection,
   flattenLineFeature,
 } from "@/lib/geo-display"
-import { PlaceLabels } from "@/features/map/PlaceLabels"
 
 export type MapPadding = {
   top: number
@@ -142,6 +142,47 @@ function FitBounds({
     )
   }, [map, bounds, suspended, terrain3d, fitEpoch, enabled, liteMode])
   return null
+}
+
+/**
+ * Mobile zoom chrome — same p-4 inset as AppShell burger (shared map parent).
+ * Avoids MapLibre ctrl margins fighting Tailwind @layer.
+ */
+function MobileZoomButtons() {
+  const { current: mapRef } = useMap()
+
+  function zoomBy(delta: number) {
+    const map = mapRef?.getMap()
+    if (!map) return
+    map.zoomTo(map.getZoom() + delta, { duration: 200 })
+  }
+
+  return (
+    <div className="pointer-events-none absolute top-0 right-0 z-10 p-4 md:hidden">
+      <div className="pointer-events-auto flex flex-col overflow-hidden border border-border bg-background shadow-lg">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          aria-label="Vergrößern"
+          className="rounded-none border-0 !bg-background shadow-none hover:!bg-accent"
+          onClick={() => zoomBy(1)}
+        >
+          <Icons.plus />
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          aria-label="Verkleinern"
+          className="rounded-none border-0 border-t border-border !bg-background shadow-none hover:!bg-accent"
+          onClick={() => zoomBy(-1)}
+        >
+          <Icons.minus />
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 /** Enable MapLibre globe projection (sphere when zoomed out). */
@@ -359,10 +400,23 @@ function Hillshade({ enabled }: { enabled: boolean }) {
 
         const layers = m.getStyle().layers ?? []
         // Under roads/borders/labels so relief reads as ground, not a veil.
-        const beforeId =
-          layers.find((l) => l.id.startsWith("road-"))?.id ??
-          layers.find((l) => l.id.startsWith("boundary_"))?.id ??
-          layers.find((l) => l.id.startsWith("label_"))?.id
+        // RTA uses road-*; OpenFreeMap Liberty/Bright use highway_*/boundary_*.
+        const beforeId = layers.find((l) => {
+          const id = l.id
+          return (
+            id.startsWith("road-") ||
+            id.startsWith("highway_") ||
+            id.startsWith("bridge_") ||
+            id.startsWith("tunnel_") ||
+            id.startsWith("boundary_") ||
+            id.startsWith("boundary-") ||
+            id.startsWith("admin") ||
+            id.startsWith("place_") ||
+            id.startsWith("label_") ||
+            id.startsWith("water_name") ||
+            id.startsWith("waterway_name")
+          )
+        })?.id
 
         m.addLayer(
           {
@@ -397,42 +451,7 @@ function Hillshade({ enabled }: { enabled: boolean }) {
   return null
 }
 
-/** Keep capital/city circles above DEM hillshade and under route markers. */
-function PromotePlaceMarkers() {
-  const { current: map } = useMap()
-
-  useEffect(() => {
-    if (!map) return
-    const m = map.getMap()
-
-    const promote = () => {
-      for (const id of [
-        "place_city_dot",
-        "place_capital_outer",
-        "place_capital_inner",
-      ]) {
-        try {
-          if (m.getLayer(id)) m.moveLayer(id)
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-
-    if (m.isStyleLoaded()) promote()
-    else m.once("load", promote)
-    m.on("style.load", promote)
-    const t = window.setTimeout(promote, 300)
-    return () => {
-      m.off("style.load", promote)
-      window.clearTimeout(t)
-    }
-  }, [map])
-
-  return null
-}
-
-/** Hide heavier basemap layers on mobile (same style, thinner). */
+/** Hide heavier Liberty layers on mobile (same style, thinner). */
 function MobileBasemapDiet({ enabled }: { enabled: boolean }) {
   const { current: map } = useMap()
 
@@ -441,7 +460,7 @@ function MobileBasemapDiet({ enabled }: { enabled: boolean }) {
     const m = map.getMap()
 
     const apply = () => {
-      for (const id of RTA_MOBILE_HIDDEN_LAYERS) {
+      for (const id of LIBERTY_MOBILE_HIDDEN_LAYERS) {
         try {
           if (m.getLayer(id)) {
             m.setLayoutProperty(
@@ -532,26 +551,20 @@ export function MapView({
 }: MapViewProps) {
   const mapRef = useRef<MapRef>(null)
   const [mapStyle, setMapStyle] = useState<string | StyleSpecification>(() =>
-    buildRtaBasemapStyleFallback(),
+    buildLibertyBasemapStyleFallback(),
   )
-  // Mobile: skip globe fly-in — go straight to the route.
-  const [introComplete, setIntroComplete] = useState(liteMode)
+  const [introComplete, setIntroComplete] = useState(false)
   const scrubbing = followPoint != null
   const globeIntroBounds = introBounds ?? fitBoundsTarget
 
   useEffect(() => {
-    if (liteMode) setIntroComplete(true)
-  }, [liteMode])
-
-  // Resolve real planet tile URLs so places source can keep maxzoom: 8 (overzoom).
-  useEffect(() => {
     let cancelled = false
-    loadRtaBasemapStyle()
+    loadLibertyBasemapStyle()
       .then((style) => {
         if (!cancelled) setMapStyle(style)
       })
       .catch((err) => {
-        console.warn("[map] OpenFreeMap style load failed:", err)
+        console.warn("[map] Liberty style load failed:", err)
       })
     return () => {
       cancelled = true
@@ -702,11 +715,7 @@ export function MapView({
       // (MapLibre permits -2…24; 0 alone is often not enough on tall phones.)
       minZoom={-1.5}
       maxZoom={18}
-      initialViewState={
-        liteMode
-          ? { longitude: 15, latitude: 45, zoom: 4, pitch: 0, bearing: 0 }
-          : GLOBE_INTRO_VIEW
-      }
+      initialViewState={GLOBE_INTRO_VIEW}
       style={{ width: "100%", height: "100%", background: mapTheme.space }}
       trackResize={false}
       // Fewer GPU fragments on phones (1–1.25× instead of 2–3× retina).
@@ -762,17 +771,19 @@ export function MapView({
       }}
     >
       <AttributionControl compact position="bottom-right" />
-      {/* Zoom +/- also on mobile — pinch often can't reach globe/space zoom. */}
-      <NavigationControl
-        position="top-right"
-        showCompass={!liteMode && !terrain3d}
-      />
+      {/* Mobile: custom zoom in same p-4 chrome as burger. Desktop: MapLibre ctrl. */}
+      {liteMode ? (
+        <MobileZoomButtons />
+      ) : (
+        <NavigationControl
+          position="top-right"
+          showCompass={!terrain3d}
+        />
+      )}
       {/* Globe is light enough with the minimal basemap — enable on mobile too. */}
       <GlobeProjection />
       <MobileBasemapDiet enabled={liteMode} />
-      {!liteMode && <PromotePlaceMarkers />}
-      <PlaceLabels maxLabels={liteMode ? 40 : 120} />
-      {!liteMode && !introComplete && (
+      {!introComplete && (
         <GlobeIntro
           bounds={globeIntroBounds}
           padding={padding}

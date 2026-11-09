@@ -1,14 +1,15 @@
 // Map colors as hex – MapLibre does not understand oklch().
-// Oriented on Mapbox Light v11 (Day) — cool near-white land, gray water.
+// Basemap: OpenFreeMap Liberty (colors live in the remote style JSON).
+// Tokens here are for route overlays, DEM hillshade, and loading fallback.
 
 /**
  * Map look & feel.
- * Basemap mimics Mapbox Light 2D so brand route blue `#1f26f0` stays the accent.
+ * Liberty paints land/water/roads; brand route blue `#1f26f0` stays the accent.
  */
 export const mapTheme = {
-  /** Mapbox Light land ≈ hsl(220, 3%, 99%) */
-  land: "#fcfcfd",
-  /** Space around the globe (our choice — Light uses white fog; we keep space black). */
+  /** Matches OpenFreeMap Liberty background while style JSON loads. */
+  land: "#f8f4f0",
+  /** Space around the globe. */
   space: "#050508",
   route: "#1f26f0",
   routeMuted: "rgba(31, 38, 240, 0.42)",
@@ -16,30 +17,26 @@ export const mapTheme = {
   stageEnd: "#0a1a8c",
   finish: "#3d4cff",
   markerBorder: "#ffffff",
-  /** Mapbox Light water ≈ hsl(220, 1%, 86%) */
-  water: "#dbdbdc",
-  waterDepth: "#d0d0d2",
-  waterway: "#dbdbdc",
-  /** Quiet Light-style roads */
+  /** Approx Liberty water — only used if we paint custom water layers. */
+  water: "rgb(158,189,255)",
+  waterDepth: "rgb(140,172,240)",
+  waterway: "rgb(158,189,255)",
   road: "#e8e8ea",
-  roadCasing: "#fcfcfd",
+  roadCasing: "#f8f4f0",
   roadMajor: "#ffffff",
-  /** admin-0 ≈ hsl(220, 0%, 70%) / halo 87% */
-  countryBorder: "#b2b2b2",
+  countryBorder: "#9a9a9a",
   countryBorderHalo: "#dedede",
-  /** Darker than Light’s 49% gray — HTML labels need more contrast on white land. */
   labelCountry: "#3f4450",
   labelCapital: "#4a5060",
   labelCity: "#6a7080",
   labelWater: "#7a8090",
   labelHalo: "#ffffff",
-  /** Settlement marker (capital ring / city dot) */
   placeMarker: "#5a6070",
   hillshade: {
     shadow: "#b8bcc4",
     highlight: "#ffffff",
     accent: "#c5c8ce",
-    exaggeration: 0.22,
+    exaggeration: 0.28,
   },
   terrainExaggeration: 0.9,
   stageCamera: {
@@ -51,8 +48,9 @@ export const mapTheme = {
 
 export const mapSources = {
   openmaptilesUrl: "https://tiles.openfreemap.org/planet",
-  glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
-  baseStyleFallback: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+  /** Self-hosted Uncut Sans SDF glyphs (see `npm run build:map-fonts`). */
+  glyphs: "/fonts/{fontstack}/{range}.pbf",
+  libertyStyleUrl: "https://tiles.openfreemap.org/styles/liberty",
   demTileJson: "https://tiles.mapterhorn.com/tilejson.json",
   demEncoding: "terrarium" as const,
   demAttribution:

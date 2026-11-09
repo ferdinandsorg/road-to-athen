@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
-import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { SheetHint } from "@/components/SheetHint"
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer"
+  TimelineSheet,
+  type TimelineSheetSnap,
+} from "@/components/TimelineSheet"
 import { useIsMobile } from "@/hooks/useIsMobile"
 import { Icons } from "@/lib/icons"
 import { cn } from "@/lib/utils"
@@ -19,8 +16,17 @@ type Props = {
   panel: React.ReactNode
   /** Optional sticky footer under the scrollable panel (e.g. Überblick link). */
   sidebarFooter?: React.ReactNode
-  /** Bottom-center timeline over the map. */
+  /** Bottom-center timeline over the map (also sheet header on mobile). */
   timeline: React.ReactNode
+  /**
+   * Mobile map chrome (top-left), e.g. “Zur Übersicht” at the first/last stage.
+   */
+  mapTopLeft?: React.ReactNode
+  /**
+   * When true on mobile (stage route), show a one-shot hint above the timeline
+   * that details live in the bottom sheet — until the sheet opens once.
+   */
+  showSheetHint?: boolean
   /** Controlled collapse; defaults to internal state when omitted. */
   collapsed?: boolean
   onCollapsedChange?: (collapsed: boolean) => void
@@ -29,6 +35,24 @@ type Props = {
    * or drag-resize end) so the map can resize once — not every frame.
    */
   onMapLayoutSettled?: () => void
+}
+
+const SHEET_HINT_KEY = "rta-sheet-hint-dismissed"
+
+function readSheetHintDismissed(): boolean {
+  try {
+    return sessionStorage.getItem(SHEET_HINT_KEY) === "1"
+  } catch {
+    return false
+  }
+}
+
+function persistSheetHintDismissed() {
+  try {
+    sessionStorage.setItem(SHEET_HINT_KEY, "1")
+  } catch {
+    /* ignore */
+  }
 }
 
 const PANEL_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"
@@ -69,7 +93,7 @@ function BrandHeader({
       )}
     >
       <div className={cn(collapsed ? "w-max" : "min-w-0 flex-1")}>
-        <Link to="/" className="block">
+        <Link to="/">
           <h1 className="font-heading text-2xl font-bold tracking-tight text-primary md:text-3xl">
             Road to Athen
           </h1>
@@ -107,12 +131,18 @@ export function AppShell({
   panel,
   sidebarFooter,
   timeline,
+  mapTopLeft,
+  showSheetHint = false,
   collapsed: collapsedProp,
   onCollapsedChange,
   onMapLayoutSettled,
 }: Props) {
   const isMobile = useIsMobile()
-  const [open, setOpen] = useState(false)
+  const [sheetSnap, setSheetSnap] =
+    useState<TimelineSheetSnap>("collapsed")
+  const [sheetHintDismissed, setSheetHintDismissed] = useState(
+    readSheetHintDismissed,
+  )
   const [internalCollapsed, setInternalCollapsed] = useState(false)
   const collapsed = collapsedProp ?? internalCollapsed
 
@@ -126,6 +156,29 @@ export function AppShell({
   // and would otherwise double-mount StagePage (charts, fetches, lightbox).
   const desktopPanel = isMobile ? null : panel
   const mobilePanel = isMobile ? panel : null
+
+  const sheetHintVisible =
+    isMobile &&
+    showSheetHint &&
+    !sheetHintDismissed &&
+    sheetSnap === "collapsed"
+
+  function dismissSheetHint() {
+    setSheetHintDismissed(true)
+    persistSheetHintDismissed()
+  }
+
+  function onSheetSnapChange(next: TimelineSheetSnap) {
+    setSheetSnap(next)
+    if (next !== "collapsed") dismissSheetHint()
+    requestAnimationFrame(() => notifyMapSettled())
+  }
+
+  function openSheetFromHint() {
+    dismissSheetHint()
+    setSheetSnap("half")
+    requestAnimationFrame(() => notifyMapSettled())
+  }
 
   useEffect(() => {
     setSidebarWidth(readStoredWidth())
@@ -170,7 +223,6 @@ export function AppShell({
       } catch {
         /* ignore */
       }
-      // One map resize after drag — not every pointermove frame.
       notifyMapSettled()
     }
 
@@ -181,7 +233,7 @@ export function AppShell({
 
   return (
     <div className="relative flex h-full w-full flex-col md:flex-row">
-      {/* Desktop sidebar — layout sibling of the map (not an overlay) */}
+      {/* Desktop sidebar */}
       <aside
         className={cn(
           "relative z-20 hidden h-full shrink-0 flex-col overflow-hidden border-r bg-map-panel md:flex",
@@ -191,66 +243,44 @@ export function AppShell({
           width: collapsed ? 0 : sidebarWidth,
           transition: resizing
             ? "none"
-            : `width ${PANEL_MS}ms ${PANEL_EASE}, border-color ${PANEL_MS}ms ${PANEL_EASE}`,
+            : `width ${PANEL_MS}ms ${PANEL_EASE}`,
         }}
-        aria-hidden={collapsed}
         onTransitionEnd={(e) => {
-          if (e.target !== e.currentTarget) return
-          if (e.propertyName !== "width") return
-          notifyMapSettled()
+          if (e.propertyName === "width") notifyMapSettled()
         }}
       >
         <div
-          className="flex h-full w-full min-w-0 flex-col"
+          className={cn(
+            "flex h-full w-full flex-col",
+            collapsed && "pointer-events-none opacity-0",
+          )}
           style={{ width: sidebarWidth }}
         >
-          <div className="shrink-0 border-b border-border px-4 py-5 md:px-6 md:py-6">
+          <div className="shrink-0 border-b border-border px-6 py-5">
             <BrandHeader
               collapsed={false}
               onToggle={() => setCollapsed(true)}
             />
           </div>
-
-          <div className="grid min-h-0 flex-1 grid-rows-[1fr]">
-            <div className="min-h-0 overflow-hidden">
-              <div className="flex h-full min-h-0 flex-col">
-                <ScrollArea
-                  className={cn(
-                    "min-w-0 w-full",
-                    sidebarFooter
-                      ? "h-[calc(100dvh-8.5rem-3.5rem)]"
-                      : "h-[calc(100dvh-8.5rem)]",
-                  )}
-                >
-                  <div className="box-border flex w-full min-w-0 flex-col gap-5 overflow-x-hidden px-4 py-5 md:gap-6 md:px-6 md:py-6">
-                    {desktopPanel}
-                  </div>
-                </ScrollArea>
-                {sidebarFooter ? (
-                  <div className="shrink-0 border-t px-4 py-3 md:px-6 md:py-4">
-                    {sidebarFooter}
-                  </div>
-                ) : null}
-              </div>
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="flex flex-col gap-6 px-6 py-6">{desktopPanel}</div>
+          </ScrollArea>
+          {sidebarFooter ? (
+            <div className="shrink-0 border-t border-border px-6 py-3">
+              {sidebarFooter}
             </div>
-          </div>
+          ) : null}
         </div>
 
-        {/* Drag handle — resize sidebar width */}
         {!collapsed ? (
           <div
             role="separator"
             aria-orientation="vertical"
-            aria-label="Sidebar-Breite anpassen"
+            aria-valuenow={sidebarWidth}
             aria-valuemin={SIDEBAR_MIN}
             aria-valuemax={SIDEBAR_MAX}
-            aria-valuenow={sidebarWidth}
             tabIndex={0}
-            className={cn(
-              "absolute top-0 right-0 z-30 h-full w-1.5 cursor-col-resize touch-none",
-              "bg-transparent hover:bg-primary/20 active:bg-primary/30",
-              resizing && "bg-primary/30",
-            )}
+            className="absolute inset-y-0 right-0 z-30 w-1.5 translate-x-1/2 cursor-col-resize touch-none bg-transparent"
             onPointerDown={onResizePointerDown}
             onKeyDown={(e) => {
               const step = e.shiftKey ? 32 : 16
@@ -282,6 +312,7 @@ export function AppShell({
 
       {/* Map column — starts where the sidebar ends */}
       <div className="relative min-h-0 min-w-0 flex-1">
+        {/* Map stays full-bleed; timeline/sheet overlays it. */}
         <div className="absolute inset-0">{map}</div>
 
         {/* Collapsed brand chip over the map */}
@@ -296,42 +327,33 @@ export function AppShell({
           </div>
         ) : null}
 
-        {/* Mobile drawer */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-4 p-4 md:hidden">
-          <div className="pointer-events-auto">
-            <Drawer open={open} onOpenChange={setOpen}>
-              <DrawerTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label="Details öffnen"
-                  className="rounded-none border bg-background shadow-lg"
-                >
-                  <Icons.menu />
-                </Button>
-              </DrawerTrigger>
-              <DrawerContent className="rounded-none">
-                <DrawerHeader className="text-left">
-                  <DrawerTitle className="font-heading text-primary">
-                    <Link to="/" onClick={() => setOpen(false)}>
-                      Road to Athen
-                    </Link>
-                  </DrawerTitle>
-                </DrawerHeader>
-                <div className="max-h-[70vh] overflow-y-auto px-4 pb-4">
-                  <div className="flex flex-col gap-6">{mobilePanel}</div>
-                  {sidebarFooter ? (
-                    <div className="mt-8 border-t pt-4">{sidebarFooter}</div>
-                  ) : null}
-                </div>
-              </DrawerContent>
-            </Drawer>
+        {/* Mobile: edge-stage control (mirrors zoom chrome padding). */}
+        {isMobile && mapTopLeft ? (
+          <div className="pointer-events-none absolute top-0 left-0 z-20 p-4 md:hidden">
+            <div className="pointer-events-auto">{mapTopLeft}</div>
           </div>
-        </div>
+        ) : null}
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:p-6">
-          <div className="pointer-events-auto w-full">{timeline}</div>
-        </div>
+        {/* Mobile: timeline IS the bottom sheet (no burger drawer). */}
+        {isMobile ? (
+          <TimelineSheet
+            snap={sheetSnap}
+            onSnapChange={onSheetSnapChange}
+            hint={
+              sheetHintVisible ? (
+                <SheetHint onOpen={openSheetFromHint} />
+              ) : undefined
+            }
+            header={timeline}
+            footer={sidebarFooter}
+          >
+            {mobilePanel}
+          </TimelineSheet>
+        ) : (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 hidden p-6 md:block">
+            <div className="pointer-events-auto w-full">{timeline}</div>
+          </div>
+        )}
       </div>
     </div>
   )
